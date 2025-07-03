@@ -11,45 +11,44 @@ import { loadTotals }     from './totals.js';
 import { $ }              from './utils.js';
 import { signOut }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
+/* ---------------- VARIÁVEIS GLOBAIS ---------------- */
 let curUser     = null;
 let curProfile  = null;
 let centersMap  = new Map();
 
-/* ------------------------------------------------- */
-/* INICIALIZA APÓS LOGIN                             */
-/* ------------------------------------------------- */
+/* ---------------- INICIALIZA APÓS LOGIN ---------------- */
 initAuth(async (user) => {
   curUser = user;
   curProfile = await getUserProfile(user.uid);
 
-  // 🔒 Garante que o perfil está correto
+  // 🚫 Verificação de segurança
   if (!curProfile || !curProfile.role) {
     console.error('Erro: perfil do usuário inválido.');
     return;
   }
 
-  // 🔧 Se não for admin, atribui dados do centro no usuário
+  // 🔒 Se não for admin, define centro no usuário
   if (curProfile.role !== 'admin') {
     curUser.centerId   = curProfile.centerId;
     curUser.centerName = curProfile.centerName || 'Centro Local';
   }
 
-  // ⏳ Carrega centros antes de usar em módulos
+  // ⏳ Carrega centros antes de iniciar os módulos
   centersMap = await initCenters(curUser, curProfile);
 
-  // ✅ Inicializa os módulos que usam os dados carregados
+  // ✅ Inicializa módulos dependentes
   initStudents  (curUser, curProfile, centersMap);
   initDefaulters(curUser, curProfile, centersMap);
 
-  // 🧭 Configura navegação e mostra tela inicial
+  // 🧭 Configura navegação
   setupHomeNav();
+
+  // 🏠 Mostra página inicial
   show('home');
 });
 
-/* ------------------------------------------------- */
-/* BOTÕES DA TELA HOME                               */
-/* ------------------------------------------------- */
-function setupHomeNav () {
+/* ---------------- BOTÕES DA HOME ---------------- */
+function setupHomeNav() {
   $('btn-nav-search'    )?.onclick = () => show('students');
   $('btn-nav-add'       )?.onclick = () => show('students', true);
   $('btn-nav-totals'    )?.onclick = async () => {
@@ -59,17 +58,16 @@ function setupHomeNav () {
   $('btn-nav-defaulters')?.onclick = () => show('defaulters');
   $('btn-nav-centers'   )?.onclick = () => show('centers');
 
-  // 🔒 Apenas admins podem acessar cadastro de centros
+  // 🔒 Restrição de acesso ao menu Centros
   if (curProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
 
+  // 🔐 Logout
   $('logout-btn')?.onclick = () => signOut();
 }
 
-/* ------------------------------------------------- */
-/* BOTÕES “Voltar”                                   */
-/* ------------------------------------------------- */
+/* ---------------- BOTÕES “Voltar” ---------------- */
 [
   ['back-home-students',   'home'],
   ['back-home-totals',     'home'],
@@ -80,9 +78,7 @@ function setupHomeNav () {
   if (el) el.onclick = () => show(target);
 });
 
-/* ------------------------------------------------- */
-/* SHOW – Navegação entre seções                     */
-/* ------------------------------------------------- */
+/* ---------------- NAVEGAÇÃO ENTRE SEÇÕES ---------------- */
 function show(target, openForm = false) {
   const map = {
     auth:        'auth-section',
@@ -93,13 +89,13 @@ function show(target, openForm = false) {
     defaulters:  'defaulters-section'
   };
 
-  // esconde tudo
+  // Oculta todas
   Object.values(map).forEach(id => $(id)?.classList.add('hidden'));
 
-  // mostra a seção desejada
+  // Mostra a selecionada
   $(map[target])?.classList.remove('hidden');
 
-  // se abriu para adicionar aluno
+  // Abre o formulário se indicado
   if (target === 'students' && openForm) {
     $('student-form-wrapper')?.setAttribute('open', '');
   }
