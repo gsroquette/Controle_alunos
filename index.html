@@ -5,112 +5,194 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Mensalidades</title>
 
+  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>.hidden{display:none}</style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
   <h1 class="text-2xl font-bold mb-4">Controle de Mensalidades</h1>
 
-  <!-- ----------- AUTH ----------- -->
+  <!-- ============ AUTH ============ -->
   <div id="auth-section" class="w-full max-w-sm bg-white p-6 rounded-lg shadow">
-    <h2 class="text-xl font-semibold mb-4" id="auth-title">Login</h2>
+    <h2 id="auth-title" class="text-xl font-semibold mb-4">Login</h2>
+
     <form id="auth-form" class="space-y-4">
-      <input id="email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
-      <input id="password" type="password" placeholder="Senha" required class="w-full p-2 border rounded" />
-      <button id="auth-btn" type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Entrar</button>
+      <input id="email" type="email" placeholder="Email"
+             class="w-full p-2 border rounded" required />
+      <input id="password" type="password" placeholder="Senha"
+             class="w-full p-2 border rounded" required />
+      <button id="auth-btn"
+              class="w-full bg-blue-600 text-white py-2 rounded">Entrar</button>
     </form>
+
     <p class="mt-4 text-center text-sm">
       <span id="toggle-msg">Não tem conta?</span>
       <button id="toggle-auth" class="text-blue-600 underline">Cadastre-se</button>
     </p>
   </div>
 
-  <!-- -------- DASHBOARD -------- -->
+  <!-- ============ DASHBOARD ============ -->
   <div id="dashboard-section" class="hidden w-full max-w-3xl">
 
     <!-- Barra topo -->
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Alunos</h2>
       <div class="space-x-2">
-        <button id="btn-show-totals" class="bg-emerald-600 text-white px-3 py-1 rounded">Totais Mensais</button>
-        <button id="logout-btn" class="bg-red-600 text-white px-3 py-1 rounded">Sair</button>
+        <button id="btn-show-totals"
+                class="bg-emerald-600 text-white px-3 py-1 rounded">
+          Totais Mensais
+        </button>
+        <button id="logout-btn"
+                class="bg-red-600 text-white px-3 py-1 rounded">
+          Sair
+        </button>
       </div>
     </div>
 
-    <!-- Form Cadastrar Centro -->
-   <!-- FORMULÁRIO CENTRO -->
-<details id="center-wrapper" class="bg-white p-4 rounded shadow mb-4">
-  <summary class="cursor-pointer font-medium">+ Novo Centro</summary>
-  <form id="center-form" class="mt-4 space-y-3 max-w-md">
-    <input id="center-name"      class="w-full p-2 border rounded" placeholder="Nome do Centro"      required />
-    <input id="center-address"   class="w-full p-2 border rounded" placeholder="Endereço completo"   required />
-    <input id="center-manager"   class="w-full p-2 border rounded" placeholder="Responsável"         required />
-    <button class="bg-indigo-600 text-white w-full py-2 rounded">Salvar Centro</button>
-  </form>
-</details>
+    <!-- ========= FORMULÁRIO CENTRO (admin) ========= -->
+    <details id="center-wrapper"
+             class="bg-white p-4 rounded shadow mb-4">
+      <summary class="cursor-pointer font-medium">+ Novo Centro</summary>
+      <form id="center-form" class="mt-4 space-y-3 max-w-md">
+        <input id="center-name"    class="w-full p-2 border rounded"
+               placeholder="Nome do Centro"      required />
+        <input id="center-address" class="w-full p-2 border rounded"
+               placeholder="Endereço completo"   required />
+        <input id="center-manager" class="w-full p-2 border rounded"
+               placeholder="Responsável"         required />
+        <button
+          class="bg-indigo-600 text-white w-full py-2 rounded">
+          Salvar Centro
+        </button>
+      </form>
+    </details>
 
-    <!-- Filtros -->
+    <!-- ========= FORMULÁRIO NOVO USUÁRIO (admin) ========= -->
+    <details id="user-wrapper"
+             class="bg-white p-4 rounded shadow mb-4">
+      <summary class="cursor-pointer font-medium">+ Novo Usuário</summary>
+      <form id="user-form" class="mt-4 space-y-3 max-w-md">
+        <input id="newuser-email" class="w-full p-2 border rounded"
+               placeholder="E-mail" type="email" required />
+        <input id="newuser-pass"  class="w-full p-2 border rounded"
+               placeholder="Senha" type="password" required minlength="6" />
+
+        <select id="newuser-role" class="w-full p-2 border rounded" required>
+          <option value="admin">Administrador</option>
+          <option value="secretaria">Secretaria</option>
+        </select>
+
+        <div id="wrapper-center-select" class="hidden">
+          <select id="newuser-center" class="w-full p-2 border rounded">
+            <option value="" disabled selected>Selecione o Centro</option>
+          </select>
+        </div>
+
+        <button id="btn-save-user"
+                class="bg-teal-600 text-white w-full py-2 rounded">
+          Salvar Usuário
+        </button>
+      </form>
+    </details>
+
+    <!-- ========= FILTROS ========= -->
     <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
-      <input id="search-input" type="text" placeholder="Pesquisar aluno..." class="flex-1 p-2 border rounded mb-2 md:mb-0" />
+      <input id="search-input" placeholder="Pesquisar aluno..."
+             class="flex-1 p-2 border rounded mb-2 md:mb-0" />
       <select id="filter-center" class="p-2 border rounded">
         <option value="">Todos os Centros</option>
       </select>
     </div>
 
+    <!-- Lista -->
     <ul id="student-list" class="space-y-2 mb-4"></ul>
 
-    <!-- Form Cadastrar Aluno -->
+    <!-- ========= FORMULÁRIO ALUNO ========= -->
     <details class="bg-white p-4 rounded shadow">
       <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
       <form id="student-form" class="mt-4 space-y-3">
 
-        <select id="student-center"   class="w-full p-2 border rounded" required>
+        <select id="student-center" class="w-full p-2 border rounded" required>
           <option value="" disabled selected>Selecione o Centro</option>
         </select>
 
-        <input  id="student-name"    class="w-full p-2 border rounded" placeholder="Nome"              required />
-        <input  id="student-contact" class="w-full p-2 border rounded" placeholder="Contato"           required />
-        <input  id="student-fee"     class="w-full p-2 border rounded" placeholder="Valor mensalidade" required type="number" />
+        <input id="student-name"    class="w-full p-2 border rounded"
+               placeholder="Nome" required />
+        <input id="student-contact" class="w-full p-2 border rounded"
+               placeholder="Contato" required />
+        <input id="student-class"   class="w-full p-2 border rounded"
+               placeholder="Turma" />
+        <input id="student-guardian"class="w-full p-2 border rounded"
+               placeholder="Responsável" />
+        <textarea id="student-notes" rows="3"
+                  class="w-full p-2 border rounded resize-y"
+                  placeholder="Observações"></textarea>
+        <input id="student-fee"     type="number"
+               class="w-full p-2 border rounded"
+               placeholder="Valor mensalidade" required />
 
-        <input  id="student-photo"   class="w-full" type="file" accept="image/*" />
-        <img    id="preview-photo"   class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
+        <input id="student-photo"   type="file" accept="image/*"
+               class="w-full" />
+        <img  id="preview-photo"
+              class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
         <div id="upload-spinner" class="hidden flex justify-center">
-          <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <svg class="animate-spin h-6 w-6 text-blue-600"
+               viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10"
+                    stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor"
-              d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+                  d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
           </svg>
         </div>
 
-        <button class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
+        <button class="bg-blue-600 text-white w-full py-2 rounded">
+          Salvar
+        </button>
       </form>
     </details>
   </div>
 
-  <!-- ------ STUDENT DETAIL ------ -->
+  <!-- ============ STUDENT DETAIL ============ -->
   <div id="student-section" class="hidden w-full max-w-3xl">
-    <button id="back-dashboard" class="mb-4 text-blue-600 underline">← Voltar</button>
+    <button id="back-dashboard"
+            class="mb-4 text-blue-600 underline">← Voltar</button>
+
     <div class="bg-white p-4 rounded shadow">
       <div class="flex items-center space-x-4 mb-4">
-        <img id="detail-photo" class="w-24 h-24 rounded-full object-cover" />
+        <img id="detail-photo"
+             class="w-24 h-24 rounded-full object-cover" />
         <div>
-          <h2 id="detail-name"    class="text-xl font-semibold"></h2>
-          <p  id="detail-contact" class="text-sm text-gray-600"></p>
-          <p  id="detail-fee"     class="text-sm text-gray-600"></p>
+          <h2 id="detail-name" class="text-xl font-semibold"></h2>
+          <p id="detail-contact"  class="text-sm text-gray-600"></p>
+          <p id="detail-class"    class="text-sm text-gray-600"></p>
+          <p id="detail-guardian" class="text-sm text-gray-600"></p>
+          <p id="detail-fee"      class="text-sm text-gray-600"></p>
+          <p id="detail-created"  class="text-sm text-gray-500"></p>
         </div>
       </div>
+
+      <p id="detail-notes"
+         class="text-sm italic text-gray-700 mb-2"></p>
+
       <h3 class="font-medium mb-2">Pagamentos</h3>
       <ul id="payments-list" class="space-y-1 mb-4"></ul>
-      <button id="btn-add-payment" class="bg-emerald-600 text-white w-full py-2 rounded">Registrar pagamento deste mês</button>
+      <button id="btn-add-payment"
+              class="bg-emerald-600 text-white w-full py-2 rounded">
+        Registrar pagamento deste mês
+      </button>
     </div>
   </div>
 
-  <!-- ---------- TOTALS ---------- -->
+  <!-- ============ TOTALS ============ -->
   <div id="totals-section" class="hidden w-full max-w-2xl">
-    <button id="back-dashboard-2" class="mb-4 text-blue-600 underline">← Voltar</button>
+    <button id="back-dashboard-2"
+            class="mb-4 text-blue-600 underline">← Voltar</button>
     <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
     <table class="w-full bg-white rounded shadow">
-      <thead class="bg-gray-200"><tr><th class="p-2 text-left">Mês/Ano</th><th class="p-2 text-left">Total</th></tr></thead>
+      <thead class="bg-gray-200">
+        <tr><th class="p-2 text-left">Mês/Ano</th>
+            <th class="p-2 text-left">Total</th></tr>
+      </thead>
       <tbody id="totals-body"></tbody>
     </table>
   </div>

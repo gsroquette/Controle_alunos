@@ -1,9 +1,9 @@
 /* students.js */
 import { db } from './firebase.js';
-import { $ }  from './utils.js';
+import { $, } from './utils.js';
 import {
   collection, addDoc, getDocs,
-  query, orderBy, where
+  query, orderBy, where, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { showStudentDetail, showDashboard } from './ui.js';
 import { listPayments, addPayment } from './payments.js';
@@ -15,72 +15,79 @@ let user=null, role='admin', userCenterId='', centersMap={};
 
 /* ---------- INIT ---------- */
 export async function initStudents(u, profile, cMap){
-  user = u;
-  role = profile.role;
+  user         = u;
+  role         = profile.role;
   userCenterId = profile.centerId || '';
-  centersMap = cMap;
+  centersMap   = cMap;
 
   $('student-form').addEventListener('submit', saveStudent);
   $('student-photo').addEventListener('change', preview);
   $('search-input').addEventListener('input', filterList);
   $('filter-center').addEventListener('change', loadStudents);
-  $('back-dashboard').addEventListener('click',()=>showDashboard());
+  $('back-dashboard').addEventListener('click', ()=>showDashboard());
 
   await loadStudents();
 }
 
-/* preview foto */
-function preview(){ const f=$('student-photo').files[0],img=$('preview-photo'); f?(img.src=URL.createObjectURL(f),img.classList.remove('hidden')):img.classList.add('hidden'); }
+/* preview */
+function preview(){
+  const f=$('student-photo').files[0], img=$('preview-photo');
+  f ? (img.src=URL.createObjectURL(f),img.classList.remove('hidden'))
+    : img.classList.add('hidden');
+}
 
-/* salvar aluno */
+/* salvar */
 async function saveStudent(e){
   e.preventDefault();
+
   const centerId = $('student-center').value;
   if(!centerId) return alert('Selecione o Centro');
 
-  const name=$('student-name').value.trim();
-  const contact=$('student-contact').value.trim();
-  const fee=+$('student-fee').value;
-  const file=$('student-photo').files[0];
+  const data = {
+    centerId,
+    centerName : centersMap[centerId],
+    name       : $('student-name').value.trim(),
+    contact    : $('student-contact').value.trim(),
+    class      : $('student-class').value.trim(),
+    guardian   : $('student-guardian').value.trim(),
+    notes      : $('student-notes').value.trim(),
+    fee        : +$('student-fee').value,
+    createdAt  : serverTimestamp()
+  };
 
-  let photoURL=''; const spin=$('upload-spinner');
+  /* upload opcional */
+  const file=$('student-photo').files[0];
   if(file){
-    spin.classList.remove('hidden');
+    $('upload-spinner').classList.remove('hidden');
     try{
       const fd=new FormData();
       fd.append('file',file);
       fd.append('upload_preset',PRESET);
       fd.append('folder',`students/${user.uid}`);
-      const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd});
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,
+        {method:'POST',body:fd});
       const j=await r.json();
-      if(j.secure_url) photoURL=j.secure_url;
-    }catch(err){console.error(err);alert('Falha upload');}
-    spin.classList.add('hidden');
+      if(j.secure_url) data.photoURL=j.secure_url;
+    }catch(err){console.error(err);alert('Upload falhou');}
+    $('upload-spinner').classList.add('hidden');
   }
 
-  await addDoc(collection(db,'users',user.uid,'students'),{
-    centerId,
-    centerName: centersMap[centerId],
-    name,contact,fee,photoURL
-  });
+  /* salva */
+  await addDoc(collection(db,'users',user.uid,'students'),data);
   $('student-form').reset();
   $('preview-photo').classList.add('hidden');
   await loadStudents();
 }
 
-/* listar alunos com filtro+permissão */
+/* lista */
 async function loadStudents(){
-  const UL=$('student-list');
-  UL.innerHTML='<li>Carregando…</li>';
+  const UL=$('student-list'); UL.innerHTML='<li>Carregando…</li>';
 
   let q=query(collection(db,'users',user.uid,'students'),orderBy('name'));
-  const selCenter=$('filter-center').value;
-
+  const sel=$('filter-center').value;
   if(role!=='admin'){
     q=query(q, where('centerId','==',userCenterId));
-  }else if(selCenter){
-    q=query(q, where('centerId','==',selCenter));
-  }
+  }else if(sel){ q=query(q, where('centerId','==',sel)); }
 
   const snap=await getDocs(q);
   UL.innerHTML='';
@@ -104,11 +111,19 @@ function filterList(){
 
 /* detalhe */
 function openDetail(id,d){
-  $('detail-photo').src=d.photoURL||'https://via.placeholder.com/96?text=Foto';
-  $('detail-name').textContent=d.name;
-  $('detail-contact').textContent='Contato: '+d.contact;
-  $('detail-fee').textContent='Mensalidade: R$ '+d.fee.toFixed(2);
+  $('detail-photo').src = d.photoURL||'https://via.placeholder.com/96?text=Foto';
+  $('detail-name').textContent     = d.name;
+  $('detail-contact').textContent  = 'Contato: '+d.contact;
+  $('detail-class').textContent    = d.class ? 'Turma: '+d.class : '';
+  $('detail-guardian').textContent = d.guardian ? 'Responsável: '+d.guardian : '';
+  $('detail-fee').textContent      = 'Mensalidade: R$ '+d.fee.toFixed(2);
+  $('detail-notes').textContent    = d.notes || '';
+  $('detail-created').textContent  = d.createdAt && d.createdAt.seconds
+    ? 'Cadastrado em: '+new Date(d.createdAt.seconds*1000).toLocaleDateString()
+    : '';
+
   listPayments(user,id);
-  $('btn-add-payment').onclick=()=>addPayment(user,id,d.fee);
+  $('btn-add-payment').onclick = ()=>addPayment(user,id,d.fee);
+
   showStudentDetail();
 }
