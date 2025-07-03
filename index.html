@@ -28,30 +28,49 @@
   <!-- -------- DASHBOARD -------- -->
   <div id="dashboard-section" class="hidden w-full max-w-3xl">
 
+    <!-- Barra topo -->
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Alunos</h2>
-      <div>
-        <button id="btn-show-totals" class="bg-emerald-600 text-white px-3 py-1 rounded mr-2">Totais Mensais</button>
+      <div class="space-x-2">
+        <button id="btn-show-totals" class="bg-emerald-600 text-white px-3 py-1 rounded">Totais Mensais</button>
         <button id="logout-btn" class="bg-red-600 text-white px-3 py-1 rounded">Sair</button>
       </div>
     </div>
 
-    <input id="search-input" type="text" placeholder="Pesquisar aluno..." class="w-full p-2 border rounded mb-4" />
+    <!-- Form Cadastrar Centro -->
+    <details class="bg-white p-4 rounded shadow mb-4">
+      <summary class="cursor-pointer font-medium">+ Novo Centro</summary>
+      <form id="center-form" class="mt-4 space-y-3 max-w-sm">
+        <input id="center-name" class="w-full p-2 border rounded" placeholder="Nome do Centro" required />
+        <button class="bg-indigo-600 text-white w-full py-2 rounded">Salvar Centro</button>
+      </form>
+    </details>
+
+    <!-- Filtros -->
+    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
+      <input id="search-input" type="text" placeholder="Pesquisar aluno..." class="flex-1 p-2 border rounded mb-2 md:mb-0" />
+      <select id="filter-center" class="p-2 border rounded">
+        <option value="">Todos os Centros</option>
+      </select>
+    </div>
+
     <ul id="student-list" class="space-y-2 mb-4"></ul>
 
+    <!-- Form Cadastrar Aluno -->
     <details class="bg-white p-4 rounded shadow">
       <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
       <form id="student-form" class="mt-4 space-y-3">
 
-        <input id="student-name"    class="w-full p-2 border rounded" placeholder="Nome"              required />
-        <input id="student-contact" class="w-full p-2 border rounded" placeholder="Contato"           required />
-        <input id="student-fee"     class="w-full p-2 border rounded" placeholder="Valor mensalidade" required type="number" />
+        <select id="student-center"   class="w-full p-2 border rounded" required>
+          <option value="" disabled selected>Selecione o Centro</option>
+        </select>
 
-        <!-- foto -->
-        <input id="student-photo"   class="w-full" type="file" accept="image/*" />
-        <!-- preview da foto -->
-        <img id="preview-photo" class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
-        <!-- spinner -->
+        <input  id="student-name"    class="w-full p-2 border rounded" placeholder="Nome"              required />
+        <input  id="student-contact" class="w-full p-2 border rounded" placeholder="Contato"           required />
+        <input  id="student-fee"     class="w-full p-2 border rounded" placeholder="Valor mensalidade" required type="number" />
+
+        <input  id="student-photo"   class="w-full" type="file" accept="image/*" />
+        <img    id="preview-photo"   class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
         <div id="upload-spinner" class="hidden flex justify-center">
           <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
@@ -93,6 +112,7 @@
     </table>
   </div>
 
+  <!-- ponto de entrada -->
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
