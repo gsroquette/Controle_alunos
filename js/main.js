@@ -76,7 +76,7 @@ function setupHomeNav() {
 ].forEach(([id, target]) => {
   const el = $(id);
   if (el) {
-    el.onclick = () => show(target); // ✅ Aqui estava o erro na versão anterior
+    el.onclick = () => show(target); // ✅ AQUI era o problema anteriormente
   }
 });
 
@@ -97,7 +97,7 @@ function show(target, openForm = false) {
   // Mostra a selecionada
   $(map[target])?.classList.remove('hidden');
 
-  // Abre o formulário se indicado
+  // Abre o formulário de aluno (se solicitado)
   if (target === 'students' && openForm) {
     $('student-form-wrapper')?.setAttribute('open', '');
   }
