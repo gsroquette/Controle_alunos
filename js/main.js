@@ -13,39 +13,36 @@ import { loadTotals }     from './totals.js';
 
 /* ------------ utilidades --------------- */
 import { $ }              from './utils.js';
-import { signOut }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 /* ================================================================== */
 /* 0. Estado compartilhado                                             */
 /* ================================================================== */
-let firebaseUser      = null;              // objeto Firebase User
-let userProfile       = null;              // { role, centerId, centerName? }
-let centersMap        = new Map();         // Map<id,{name}> preenchido pelo módulo centers
+let firebaseUser = null;         // Firebase User
+let userProfile  = null;         // { role, centerId, … }
+let centersMap   = new Map();    // Map<id,{name}>
 
-/* helper para registrar onclicks de forma concisa */
+/* helper onclick */
 const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
 
 /* ================================================================== */
-/* 1. Bootstrap – dispara assim que o usuário loga                     */
+/* 1. Bootstrap – dispara depois do login                              */
 /* ================================================================== */
 initAuth(async (user) => {
-  /* ---- 1.1 perfil do usuário ---- */
   firebaseUser = user;
   userProfile  = await getUserProfile(user.uid);
 
   if (!userProfile?.role) {
-    console.error('main: perfil de usuário sem role; abortando.');
+    console.error('main: perfil sem role – abortado.');
     return;
   }
 
-  /* ---- 1.2 carrega centros (aguarda) ---- */
-  centersMap = await initCenters(firebaseUser, userProfile); // devolve Map
+  centersMap = await initCenters(firebaseUser, userProfile);
 
-  /* ---- 1.3 módulos que dependem de centros ---- */
   initStudents  (firebaseUser, userProfile, centersMap);
-  initDefaulters(firebaseUser, userProfile, centersMap);     // ← agora 3 args
+  initDefaulters(firebaseUser, userProfile, centersMap);
 
-  /* ---- 1.4 navegação & tela inicial ---- */
   setupHomeNav();
   showSection('home');
 });
@@ -55,7 +52,7 @@ initAuth(async (user) => {
 /* ================================================================== */
 function setupHomeNav() {
   on('btn-nav-search'    , () => showSection('students'));
-  on('btn-nav-add'       , () => showSection('students', /*openForm=*/true));
+  on('btn-nav-add'       , () => showSection('addStudent'));   // ← ALTERADO
 
   on('btn-nav-totals'    , async () => {
     await loadTotals(firebaseUser);
@@ -65,7 +62,6 @@ function setupHomeNav() {
   on('btn-nav-defaulters', () => showSection('defaulters'));
   on('btn-nav-centers'   , () => showSection('centers'));
 
-  /* apenas admin vê “Cadastro de Centro” */
   if (userProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
@@ -74,36 +70,34 @@ function setupHomeNav() {
 }
 
 /* ================================================================== */
-/* 3. Botões “Voltar” das sub-telas                                     */
+/* 3. Botões “Voltar”                                                  */
 /* ================================================================== */
 [
-  ['back-home-students',   'home'],
-  ['back-home-totals',     'home'],
-  ['back-home-centers',    'home'],
-  ['back-home-defaulters', 'home']
-].forEach(([id, target]) => on(id, () => showSection(target)));
+  ['back-home-students' , 'home'],
+  ['back-home-add'      , 'home'],  // ← botão da tela de cadastro
+  ['back-home-totals'   , 'home'],
+  ['back-home-centers'  , 'home'],
+  ['back-home-defaulters','home']
+].forEach(([id, tgt]) => on(id, () => showSection(tgt)));
 
 /* ================================================================== */
-/* 4. Router super-simples (mostrar / esconder seções)                 */
+/* 4. Router – mostra / esconde sections                               */
 /* ================================================================== */
 function showSection(target, openStudentForm = false) {
-  /* mapa id-lógico → id-HTML */
   const sectionId = {
     auth      : 'auth-section',
     home      : 'home-section',
-    students  : 'dashboard-section',
+    students  : 'dashboard-section',   // lista / pesquisa
+    addStudent: 'add-student-section', // formulário
     totals    : 'totals-section',
     centers   : 'centers-section',
     defaulters: 'defaulters-section'
   };
 
-  /* esconde todas as seções */
   Object.values(sectionId).forEach(id => $(id)?.classList.add('hidden'));
-
-  /* mostra a desejada */
   $(sectionId[target])?.classList.remove('hidden');
 
-  /* se vier de “Adicionar Aluno”, expande o <details> do formulário */
+  /* se quisermos abrir <details> quando ficar na mesma página */
   if (target === 'students' && openStudentForm) {
     $('student-form-wrapper')?.setAttribute('open', '');
   }
