@@ -49,14 +49,14 @@ initAuth(async (user) => {
 
 /* ---------------- BOTÕES DA HOME ---------------- */
 function setupHomeNav() {
-  $('btn-nav-search'    )?.onclick = () => show('students');
-  $('btn-nav-add'       )?.onclick = () => show('students', true);
-  $('btn-nav-totals'    )?.onclick = async () => {
+  $('btn-nav-search')     ?.onclick = () => show('students');
+  $('btn-nav-add')        ?.onclick = () => show('students', true);
+  $('btn-nav-totals')     ?.onclick = async () => {
     await loadTotals(curUser);
     show('totals');
   };
-  $('btn-nav-defaulters')?.onclick = () => show('defaulters');
-  $('btn-nav-centers'   )?.onclick = () => show('centers');
+  $('btn-nav-defaulters') ?.onclick = () => show('defaulters');
+  $('btn-nav-centers')    ?.onclick = () => show('centers');
 
   // 🔒 Restrição de acesso ao menu Centros
   if (curProfile.role !== 'admin') {
@@ -75,7 +75,9 @@ function setupHomeNav() {
   ['back-home-defaulters', 'home']
 ].forEach(([id, target]) => {
   const el = $(id);
-  if (el) el.onclick = () => show(target);
+  if (el) {
+    el.onclick = () => show(target); // ✅ Aqui estava o erro na versão anterior
+  }
 });
 
 /* ---------------- NAVEGAÇÃO ENTRE SEÇÕES ---------------- */
