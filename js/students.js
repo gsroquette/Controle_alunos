@@ -1,72 +1,165 @@
+/* ------------- imports ------------- */
 import {
-  collection, addDoc, query, orderBy, getDocs,
-  where, doc, updateDoc, serverTimestamp
+  collection, query, where, orderBy, limit, startAfter,
+  getDocs, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { uploadImage } from './utils.js';
-import { db } from './firebase.js';
-import { $, formatMoney } from './utils.js';
+import { db }          from './firebase.js';
+import { $, uploadImage, formatMoney } from './utils.js';
 
-/* ---------- salvar novo aluno ---------- */
-export async function saveStudent(currentUser){
+/* paginação */
+const PAGE = 20;
+let lastDoc = null;
+let reachedEnd = false;
+let currentUser;
+let centersMap;
+
+/* ------------------------------------------------------------------ */
+/* 1. INIT  –  chamado por main.js                                     */
+/* ------------------------------------------------------------------ */
+export function initStudents(user, profile, cMap){
+  currentUser = user;
+  centersMap  = cMap;
+
+  /* --- Popula selects de centro --- */
+  const selFilter = $('filter-center');
+  const selForm   = $('student-center');
+  selFilter.innerHTML = '<option value="">Todos os Centros</option>';
+  cMap.forEach( (c,id)=>{
+    const opt1 = new Option(c.name,id);
+    const opt2 = new Option(c.name,id);
+    selFilter.appendChild(opt1);
+    selForm  .appendChild(opt2);
+  });
+
+  /* secretaria só enxerga seu centro */
+  if(profile.role==='secretaria'){
+    selFilter.value = profile.centerId;
+    selFilter.disabled = true;
+    selForm  .value = profile.centerId;
+    selForm  .disabled = true;
+  }
+
+  /* --- listeners de filtro/pesquisa --- */
+  $('search-input').oninput      = ()=>refresh();
+  selFilter.onchange             = ()=>refresh();
+  $('filter-scholar').onchange   = ()=>refresh();
+
+  /* --- paginação --- */
+  $('btn-prev').onclick = ()=>pagePrev();
+  $('btn-next').onclick = ()=>pageNext();
+
+  /* --- formulário novo aluno --- */
+  const chkScholar = $('student-scholar');
+  const feeInput   = $('student-fee');
+  chkScholar.onchange = ()=>{
+    if(chkScholar.checked){
+      feeInput.value = '';
+      feeInput.disabled = true;
+    }else{
+      feeInput.disabled = false;
+    }
+  };
+
+  /* preview */
+  $('student-photo').onchange = e=>{
+    const f=e.target.files[0];
+    if(!f) return;
+    const img=$('preview-photo');
+    img.src=URL.createObjectURL(f);
+    img.classList.remove('hidden');
+  };
+
+  $('student-form').onsubmit = async e=>{
+    e.preventDefault();
+    $('upload-spinner').classList.remove('hidden');
+    try{
+      await saveStudent();
+      e.target.reset();
+      $('preview-photo').classList.add('hidden');
+      refresh(true);                       // volta 1ª página
+      alert('Aluno salvo!');
+    }catch(err){ alert(err.message); }
+    $('upload-spinner').classList.add('hidden');
+  };
+
+  /* carregamento inicial */
+  refresh(true);
+}
+
+/* ------------------------------------------------------------------ */
+/* 2. SALVAR ALUNO                                                     */
+/* ------------------------------------------------------------------ */
+async function saveStudent(){
   const name       = $('student-name').value.trim();
   const contact    = $('student-contact').value.trim();
-  const feeInput   = $('student-fee');
-  const isScholar  = $('student-scholar').checked;
-  const fee        = isScholar ? 0 : parseFloat(feeInput.value);
-  const photoFile  = $('student-photo').files[0];
   const centerId   = $('student-center').value;
+  const fee        = $('student-scholar').checked ? 0 : parseFloat($('student-fee').value||0);
   const cls        = $('student-class').value.trim();
   const guardian   = $('student-guardian').value.trim();
   const notes      = $('student-notes').value.trim();
+  const isScholar  = $('student-scholar').checked;
+  const photoFile  = $('student-photo').files[0];
+  let   photoURL   = '';
 
-  let photoURL = '';
-  if(photoFile){
-    photoURL = await uploadImage(photoFile, currentUser.uid);
-  }
+  if(photoFile) photoURL = await uploadImage(photoFile,currentUser.uid);
 
   await addDoc(
     collection(db,'users',currentUser.uid,'students'),{
-      name, contact, fee, photoURL,
-      centerId, class:cls, guardian, notes,
+      name,contact,centerId,fee,class:cls,guardian,notes,
       isScholarship:isScholar,
+      photoURL,
       createdAt: serverTimestamp()
-    });
+    }
+  );
 }
 
-/* ---------- lista de alunos ---------- */
-export async function loadStudents(currentUser, centersMap){
-  const list = $('student-list');
-  list.innerHTML = '<li>Carregando...</li>';
+/* ------------------------------------------------------------------ */
+/* 3. LISTAGEM + PAGINAÇÃO                                             */
+/* ------------------------------------------------------------------ */
+function buildQuery(){
+  const cen = $('filter-center').value;
+  const schol = $('filter-scholar').checked;
+  let q = query(collection(db,'users',currentUser.uid,'students'), orderBy('name'), limit(PAGE));
 
-  const centerFilter = $('filter-center').value;
-  const scholarOnly  = $('filter-scholar').checked;
+  if(cen)   q = query(q, where('centerId','==',cen));
+  if(schol) q = query(q, where('isScholarship','==',true));
+  if(lastDoc) q = query(q, startAfter(lastDoc));
+  return q;
+}
 
-  let q = query(collection(db,'users',currentUser.uid,'students'), orderBy('name'));
-  if(centerFilter) q = query(q, where('centerId','==',centerFilter));
-  if(scholarOnly)  q = query(q, where('isScholarship','==',true));
+async function refresh(reset=false){
+  if(reset){
+    lastDoc=null; reachedEnd=false;
+    $('btn-prev').disabled=true;
+  }
+  if(reachedEnd) return;
 
-  const snap = await getDocs(q);
-  list.innerHTML = '';
-  snap.forEach(docSnap=>{
-    const s = docSnap.data();
-    const li = document.createElement('li');
-    li.className = 'bg-white p-3 rounded shadow flex justify-between cursor-pointer';
-    li.innerHTML = `
-      <span>${s.name}${s.isScholarship?' <span class="text-xs text-violet-700 font-semibold">(Bolsista)</span>':''}</span>
-      <span class="text-sm text-gray-500">${centersMap.get(s.centerId)?.name||''}</span>
-    `;
-    li.addEventListener('click',()=>openStudent(docSnap.id,s,centersMap));
+  const snap = await getDocs(buildQuery());
+  renderList(snap.docs, reset);
+  if(snap.size<PAGE) reachedEnd=true;
+  $('btn-next').disabled = reachedEnd;
+}
+
+function renderList(docs,reset){
+  const list=$('student-list');
+  if(reset) list.innerHTML='';
+  docs.forEach(doc=>{
+    const s=doc.data();
+    const li=document.createElement('li');
+    li.className='bg-white p-3 rounded shadow flex justify-between cursor-pointer';
+    li.innerHTML=`
+      <span>${s.name}${s.isScholarship?'<span class="text-xs text-violet-700 font-semibold"> (Bolsista)</span>':''}</span>
+      <span class="text-sm text-gray-500">${centersMap.get(s.centerId)?.name||''}</span>`;
     list.appendChild(li);
   });
+  lastDoc = docs[docs.length-1];
 }
 
-/* ---------- detalhe ---------- */
-function openStudent(id,data,centersMap){
-  $('detail-name').textContent = data.name;
-  $('detail-contact').textContent  = 'Contato: '+data.contact;
-  $('detail-class').textContent    = data.class? 'Turma: '+data.class : '';
-  $('detail-guardian').textContent = data.guardian? 'Resp.: '+data.guardian : '';
-  $('detail-fee').textContent      = data.isScholarship ? 'Bolsista' : 'Mens.: '+formatMoney(data.fee);
-  $('detail-notes').textContent    = data.notes;
-  $('detail-photo').src            = data.photoURL || 'https://via.placeholder.com/96x96?text=Foto';
+function pagePrev(){
+  lastDoc=null;
+  refresh(true);
 }
+function pageNext(){ refresh(false); }
+
+/* ------------------------------------------------------------------ */
+export { initStudents };
