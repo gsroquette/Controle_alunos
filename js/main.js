@@ -62,7 +62,7 @@ function setupHomeNav() {
   on('btn-nav-add'       , () => showSection('addStudent'));
 
   on('btn-nav-totals'    , async () => {
-    await loadTotals(firebaseUser);
+   await loadTotals(firebaseUser, userProfile);
     showSection('totals');
   });
 
