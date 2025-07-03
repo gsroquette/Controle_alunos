@@ -42,10 +42,24 @@
     <details class="bg-white p-4 rounded shadow">
       <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
       <form id="student-form" class="mt-4 space-y-3">
+
         <input id="student-name"    class="w-full p-2 border rounded" placeholder="Nome"              required />
         <input id="student-contact" class="w-full p-2 border rounded" placeholder="Contato"           required />
         <input id="student-fee"     class="w-full p-2 border rounded" placeholder="Valor mensalidade" required type="number" />
+
+        <!-- foto -->
         <input id="student-photo"   class="w-full" type="file" accept="image/*" />
+        <!-- preview da foto -->
+        <img id="preview-photo" class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
+        <!-- spinner -->
+        <div id="upload-spinner" class="hidden flex justify-center">
+          <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+            <path class="opacity-75" fill="currentColor"
+              d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+          </svg>
+        </div>
+
         <button class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
       </form>
     </details>
@@ -79,7 +93,6 @@
     </table>
   </div>
 
-  <!-- ponto de entrada -->
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
