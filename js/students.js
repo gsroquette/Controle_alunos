@@ -1,55 +1,47 @@
 /* students.js */
-import { db }     from './firebase.js';
-import { $, }     from './utils.js';
+import { db } from './firebase.js';
+import { $ }  from './utils.js';
 import {
   collection, addDoc, getDocs,
-  query, orderBy
+  query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { showStudentDetail, showDashboard } from './ui.js';
 import { listPayments, addPayment } from './payments.js';
-import { loadCenters } from './centers.js';
 
 /* Cloudinary */
-const CLOUD = 'dqa8jupnh';
-const PRESET= 'unsigned';
+const CLOUD='dqa8jupnh', PRESET='unsigned';
 
-let user=null;
-let currentId='';
-let centersMap={};
+let user=null, role='admin', userCenterId='', centersMap={};
 
-/* -------- INIT -------- */
-export async function initStudents(u){
-  user=u;
+/* ---------- INIT ---------- */
+export async function initStudents(u, profile, cMap){
+  user = u;
+  role = profile.role;
+  userCenterId = profile.centerId || '';
+  centersMap = cMap;
 
   $('student-form').addEventListener('submit', saveStudent);
-  $('student-photo').addEventListener('change', previewPhoto);
+  $('student-photo').addEventListener('change', preview);
   $('search-input').addEventListener('input', filterList);
   $('filter-center').addEventListener('change', loadStudents);
-  $('back-dashboard').addEventListener('click', ()=>showDashboard());
+  $('back-dashboard').addEventListener('click',()=>showDashboard());
 
-  // carrega Centros e depois alunos
-  centersMap = await loadCenters();
   await loadStudents();
 }
 
-/* preview */
-function previewPhoto(){
-  const f=$('student-photo').files[0];
-  const img=$('preview-photo');
-  if(f){ img.src=URL.createObjectURL(f); img.classList.remove('hidden');}
-  else  { img.classList.add('hidden'); }
-}
+/* preview foto */
+function preview(){ const f=$('student-photo').files[0],img=$('preview-photo'); f?(img.src=URL.createObjectURL(f),img.classList.remove('hidden')):img.classList.add('hidden'); }
 
 /* salvar aluno */
 async function saveStudent(e){
   e.preventDefault();
-  const centerId=$('student-center').value;
-  if(!centerId) return alert('Selecione o Centro.');
+  const centerId = $('student-center').value;
+  if(!centerId) return alert('Selecione o Centro');
 
-  const name   =$('student-name').value.trim();
+  const name=$('student-name').value.trim();
   const contact=$('student-contact').value.trim();
-  const fee    =+$('student-fee').value;
-  const file   =$('student-photo').files[0];
+  const fee=+$('student-fee').value;
+  const file=$('student-photo').files[0];
 
   let photoURL=''; const spin=$('upload-spinner');
   if(file){
@@ -59,37 +51,38 @@ async function saveStudent(e){
       fd.append('file',file);
       fd.append('upload_preset',PRESET);
       fd.append('folder',`students/${user.uid}`);
-      const r =await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,
-        {method:'POST',body:fd});
+      const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,{method:'POST',body:fd});
       const j=await r.json();
-      if(j.secure_url) photoURL=j.secure_url; else throw new Error(j.error?.message);
-    }catch(err){ console.error(err); alert('Upload falhou.'); }
+      if(j.secure_url) photoURL=j.secure_url;
+    }catch(err){console.error(err);alert('Falha upload');}
     spin.classList.add('hidden');
   }
 
   await addDoc(collection(db,'users',user.uid,'students'),{
     centerId,
     centerName: centersMap[centerId],
-    name, contact, fee, photoURL
+    name,contact,fee,photoURL
   });
   $('student-form').reset();
   $('preview-photo').classList.add('hidden');
   await loadStudents();
-  alert('Aluno salvo!');
 }
 
-/* listar alunos */
+/* listar alunos com filtro+permissão */
 async function loadStudents(){
   const UL=$('student-list');
   UL.innerHTML='<li>Carregando…</li>';
 
-  const filterCenter=$('filter-center').value;
   let q=query(collection(db,'users',user.uid,'students'),orderBy('name'));
-  if(filterCenter){
-    q=query(q, where('centerId','==',filterCenter));
-  }
-  const snap=await getDocs(q);
+  const selCenter=$('filter-center').value;
 
+  if(role!=='admin'){
+    q=query(q, where('centerId','==',userCenterId));
+  }else if(selCenter){
+    q=query(q, where('centerId','==',selCenter));
+  }
+
+  const snap=await getDocs(q);
   UL.innerHTML='';
   snap.forEach(doc=>{
     const d=doc.data();
@@ -110,13 +103,12 @@ function filterList(){
 }
 
 /* detalhe */
-function openDetail(id,data){
-  currentId=id;
-  $('detail-photo').src = data.photoURL||'https://via.placeholder.com/96?text=Foto';
-  $('detail-name').textContent    = data.name;
-  $('detail-contact').textContent = 'Contato: '+data.contact;
-  $('detail-fee').textContent     = `Mensalidade: R$ ${data.fee.toFixed(2)}`;
-  listPayments(user,currentId);
-  $('btn-add-payment').onclick=()=>addPayment(user,currentId,data.fee);
+function openDetail(id,d){
+  $('detail-photo').src=d.photoURL||'https://via.placeholder.com/96?text=Foto';
+  $('detail-name').textContent=d.name;
+  $('detail-contact').textContent='Contato: '+d.contact;
+  $('detail-fee').textContent='Mensalidade: R$ '+d.fee.toFixed(2);
+  listPayments(user,id);
+  $('btn-add-payment').onclick=()=>addPayment(user,id,d.fee);
   showStudentDetail();
 }

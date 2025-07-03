@@ -1,20 +1,22 @@
-import { initAuth }    from './auth.js';
-import { initCenters } from './centers.js';
+import { initAuth }     from './auth.js';
+import { getUserProfile } from './profile.js';
+import { initCenters }  from './centers.js';
 import { initStudents } from './students.js';
-import { loadTotals }  from './totals.js';
-import { $, }         from './utils.js';
+import { loadTotals }   from './totals.js';
+import { $, }           from './utils.js';
 import { showTotals, showDashboard } from './ui.js';
 
-let currentUser=null;
-
-/* Inicia autenticação */
+/* ---------- Autenticação ---------- */
 initAuth(async (user)=>{
-  currentUser=user;
+  const profile = await getUserProfile(user.uid);          // {role:'admin'|'secretaria', centerId?}
 
-  /* 1. Carrega Centros → depois alunos */
-  initCenters(user, ()=>initStudents(user));
+  /* 1. Centros */
+  initCenters(user, profile, async (centersMap)=>{
+    /* 2. Alunos (depende dos Centros) */
+    await initStudents(user, profile, centersMap);
+  });
 
-  /* Totais mensais */
+  /* Totais Mensais */
   $('btn-show-totals').onclick = async ()=>{
     await loadTotals(user);
     showTotals();

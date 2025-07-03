@@ -5,39 +5,45 @@ import {
   collection, addDoc, getDocs, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-let user = null;
+let user=null, role='admin', userCenterId='';
 
 /* ---------- INIT ---------- */
-export function initCenters(u, onReady){
+export async function initCenters(u, profile, onReady){
   user = u;
-  $('center-form').addEventListener('submit', saveCenter);
-  loadCenters().then(onReady);      // popula selects e devolve mapa
+  role = profile.role;
+  userCenterId = profile.centerId || '';
+
+  if(role !== 'admin'){
+    // esconde todo o bloco de criar Centro
+    $('center-wrapper').classList.add('hidden');
+  }else{
+    $('center-form').addEventListener('submit', saveCenter);
+  }
+
+  const map = await loadCenters();   // preenche select & filtro
+  onReady(map);
 }
 
-/* ---------- Salvar ---------- */
+/* ---------- Salvar Centro ---------- */
 async function saveCenter(e){
   e.preventDefault();
+  const name    = $('center-name').value.trim();
+  const address = $('center-address').value.trim();
+  const manager = $('center-manager').value.trim();
+  if(!name||!address||!manager) return alert('Preencha todos os campos!');
 
-  const name      = $('center-name').value.trim();
-  const address   = $('center-address').value.trim();
-  const manager   = $('center-manager').value.trim();
-  if(!name || !address || !manager) return alert('Preencha todos os campos!');
-
-  await addDoc(collection(db,'users',user.uid,'centers'),{
-    name, address, manager
-  });
-
+  await addDoc(collection(db,'users',user.uid,'centers'),{ name,address,manager });
   $('center-form').reset();
   await loadCenters();
   alert('Centro salvo!');
 }
 
-/* ---------- Carregar ---------- */
+/* ---------- Carregar Centros ---------- */
 export async function loadCenters(){
   const selStudent = $('student-center');
   const selFilter  = $('filter-center');
 
-  selStudent.length = 1;  // mantém 1ª opção
+  selStudent.length = 1;
   selFilter.length  = 1;
 
   const q = query(
@@ -54,6 +60,14 @@ export async function loadCenters(){
     selFilter.appendChild(opt2);
   });
 
-  /* devolve {id: name} */
+  // restrições para secretaria
+  if(role !== 'admin'){
+    selFilter.value       = userCenterId;   // filtro fixo
+    selFilter.disabled    = true;
+
+    selStudent.value      = userCenterId;   // select fixo
+    selStudent.disabled   = true;
+  }
+
   return Object.fromEntries(snap.docs.map(d=>[d.id,d.data().name]));
 }
