@@ -1,4 +1,4 @@
-// main.js
+// main.js --------------------------------------------------------------
 
 import { initAuth }       from './auth.js';
 import { getUserProfile } from './profile.js';
@@ -9,65 +9,65 @@ import { initDefaulters } from './defaulters.js';
 import { loadTotals }     from './totals.js';
 
 import { $ }              from './utils.js';
-import { signOut }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { signOut }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-/* ---------------- VARIÁVEIS GLOBAIS ---------------- */
-let curUser     = null;
-let curProfile  = null;
-let centersMap  = new Map();
+/* ---------- estado global ---------- */
+let curUser    = null;
+let curProfile = null;
+let centersMap = new Map();
 
-/* ---------------- INICIALIZA APÓS LOGIN ---------------- */
+/* ---------- inicia assim que o usuário loga ---------- */
 initAuth(async (user) => {
-  curUser = user;
+  curUser    = user;
   curProfile = await getUserProfile(user.uid);
 
-  // 🚫 Verificação de segurança
   if (!curProfile || !curProfile.role) {
-    console.error('Erro: perfil do usuário inválido.');
+    console.error('Perfil do usuário não encontrado ou sem role.');
     return;
   }
 
-  // 🔒 Se não for admin, define centro no usuário
+  /* se não for admin guarda o centro no próprio objeto usuário          */
   if (curProfile.role !== 'admin') {
     curUser.centerId   = curProfile.centerId;
     curUser.centerName = curProfile.centerName || 'Centro Local';
   }
 
-  // ⏳ Carrega centros antes de iniciar os módulos
+  /* 1. centros → devolve Map<id,{name}> -------------------------------- */
   centersMap = await initCenters(curUser, curProfile);
 
-  // ✅ Inicializa módulos dependentes
+  /* 2. módulos que dependem dos centros ------------------------------- */
   initStudents  (curUser, curProfile, centersMap);
   initDefaulters(curUser, curProfile, centersMap);
 
-  // 🧭 Configura navegação
+  /* 3. navegação e tela inicial --------------------------------------- */
   setupHomeNav();
-
-  // 🏠 Mostra página inicial
   show('home');
 });
 
-/* ---------------- BOTÕES DA HOME ---------------- */
+/* ---------- botões da Home ---------- */
 function setupHomeNav() {
-  $('btn-nav-search')     ?.onclick = () => show('students');
-  $('btn-nav-add')        ?.onclick = () => show('students', true);
-  $('btn-nav-totals')     ?.onclick = async () => {
+  $('btn-nav-search')    ?.onclick = () => show('students');
+  $('btn-nav-add')       ?.onclick = () => show('students', true);
+
+  $('btn-nav-totals')    ?.onclick = async () => {
     await loadTotals(curUser);
     show('totals');
   };
-  $('btn-nav-defaulters') ?.onclick = () => show('defaulters');
-  $('btn-nav-centers')    ?.onclick = () => show('centers');
 
-  // 🔒 Restrição de acesso ao menu Centros
+  $('btn-nav-defaulters')?.onclick = () => show('defaulters');
+  $('btn-nav-centers')   ?.onclick = () => show('centers');
+
+  /* menu Centros só para admin */
   if (curProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
 
-  // 🔐 Logout
+  /* logout */
   $('logout-btn')?.onclick = () => signOut();
 }
 
-/* ---------------- BOTÕES “Voltar” ---------------- */
+/* ---------- botões “voltar” ---------- */
 [
   ['back-home-students',   'home'],
   ['back-home-totals',     'home'],
@@ -76,28 +76,28 @@ function setupHomeNav() {
 ].forEach(([id, target]) => {
   const el = $(id);
   if (el) {
-    el.onclick = () => show(target); // ✅ AQUI era o problema anteriormente
+    el.onclick = () => show(target);
   }
 });
 
-/* ---------------- NAVEGAÇÃO ENTRE SEÇÕES ---------------- */
+/* ---------- router simples ---------- */
 function show(target, openForm = false) {
   const map = {
-    auth:        'auth-section',
-    home:        'home-section',
-    students:    'dashboard-section',
-    totals:      'totals-section',
-    centers:     'centers-section',
-    defaulters:  'defaulters-section'
+    auth:       'auth-section',
+    home:       'home-section',
+    students:   'dashboard-section',
+    totals:     'totals-section',
+    centers:    'centers-section',
+    defaulters: 'defaulters-section'
   };
 
-  // Oculta todas
+  /* esconde tudo */
   Object.values(map).forEach(id => $(id)?.classList.add('hidden'));
 
-  // Mostra a selecionada
+  /* mostra solicitada */
   $(map[target])?.classList.remove('hidden');
 
-  // Abre o formulário de aluno (se solicitado)
+  /* se veio de “Adicionar Aluno” */
   if (target === 'students' && openForm) {
     $('student-form-wrapper')?.setAttribute('open', '');
   }
