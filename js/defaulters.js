@@ -12,7 +12,6 @@ let centersMap;
 /* INICIALIZA – chamada por main.js                                   */
 /* ------------------------------------------------------------------ */
 export function initDefaulters(user, cMap) {
-  // Verificações de segurança
   if (!user || !user.role) {
     console.warn('Usuário inválido ou sem role em initDefaulters');
     return;
@@ -23,11 +22,9 @@ export function initDefaulters(user, cMap) {
     return;
   }
 
-  // Garante que seja um Map
   centersMap = (cMap instanceof Map) ? cMap : new Map(Object.entries(cMap));
   currentUser = user;
 
-  // Preenche o select de centros
   const sel = $('defaulters-center');
   sel.innerHTML = '<option value="">Todos os Centros</option>';
 
@@ -49,7 +46,7 @@ export function initDefaulters(user, cMap) {
 /* ------------------------------------------------------------------ */
 async function loadDefaulters() {
   const tbody   = $('defaulters-body');
-  const monthIn = $('defaulters-month').value;          // yyyy-mm
+  const monthIn = $('defaulters-month').value;
   const center  = $('defaulters-center').value;
 
   if (!monthIn) {
@@ -60,5 +57,36 @@ async function loadDefaulters() {
   const [y, m] = monthIn.split('-').map(Number);
   tbody.innerHTML = '<tr><td class="p-2">Carregando...</td></tr>';
 
-  // Filtra alunos por centro se selecionado
-  const qStu
+  // Monta a query dos alunos
+  const qStu = center
+    ? query(collection(db, 'users', currentUser.uid, 'students'),
+            where('centerId', '==', center))
+    : collection(db, 'users', currentUser.uid, 'students');
+
+  const snapStu = await getDocs(qStu);
+  const rows = [];
+
+  for (const stuDoc of snapStu.docs) {
+    const s = stuDoc.data();
+    if (s.isScholarship) continue;  // ignora bolsistas
+
+    const payCol = collection(
+      db, 'users', currentUser.uid, 'students', stuDoc.id, 'payments'
+    );
+    const payQ = query(payCol,
+      where('month', '==', m), where('year', '==', y));
+    const paySnap = await getDocs(payQ);
+
+    if (paySnap.empty) {
+      rows.push(`
+        <tr>
+          <td class="p-2 border-t">${s.name}</td>
+          <td class="p-2 border-t">${centersMap.get(s.centerId)?.name || ''}</td>
+        </tr>`);
+    }
+  }
+
+  tbody.innerHTML = rows.length
+    ? rows.join('')
+    : '<tr><td class="p-2">Nenhum inadimplente 🎉</td></tr>';
+}
