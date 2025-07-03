@@ -32,19 +32,44 @@ export function initStudents(user, profile, cMap) {
                  : new Map(Object.entries(cMap));
 
   /* ---- select de centros (filtro & form) ---- */
-  fillCenterSelects();
-  const selForm = $("student-center");
-  selForm.innerHTML = "";
+ /* ---- select de centros (filtro & form) ---- */
+fillCenterSelects();
+
+const selForm = $("student-center");
+if (selForm) {                                 // <- garante existência
+  selForm.innerHTML = "";                      // limpa primeiro
   centersMap.forEach((c, id) =>
     selForm.appendChild(new Option(c.name, id))
   );
+}
 
-  if (profile.role === "secretaria") {
-    $("filter-center").value    = profile.centerId;
-    $("filter-center").disabled = true;
-    selForm.value               = profile.centerId;
-    selForm.disabled            = true;
+/* ──────────────────────────────────────────────── */
+/* secretaria vê apenas o próprio centro            */
+/* ──────────────────────────────────────────────── */
+if (profile.role === "secretaria") {
+
+  /* 1. garante que o centro da secretária exista nos selects */
+  if (!centersMap.has(profile.centerId)) {
+    const label = profile.centerName || "Centro";
+    centersMap.set(profile.centerId, { name: label });
+    selForm?.appendChild(new Option(label, profile.centerId));
+
+    const selFilter = $("filter-center");
+    if (
+      selFilter &&
+      ![...selFilter.options].some(o => o.value === profile.centerId)
+    ) {
+      selFilter.appendChild(new Option(label, profile.centerId));
+    }
   }
+
+  /* 2. fixa o centro nos dois selects */
+  $("filter-center").value    = profile.centerId;
+  $("filter-center").disabled = true;
+
+  selForm.value    = profile.centerId;         // <- força sempre
+  selForm.disabled = true;
+}
 
   /* ---- listeners de filtro / lista ---- */
   $("search-input").oninput    = () => refresh(true);
