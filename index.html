@@ -6,13 +6,11 @@
   <title>Controle de Mensalidades</title>
   <!-- Tailwind (opcional, CDN) -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Ajustes rápidos de layout */
-    .hidden { display: none; }
-  </style>
+  <style> .hidden{display:none;} </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
   <h1 class="text-2xl font-bold mb-4">Controle de Mensalidades</h1>
+
   <!-- ================= AUTH SECTION ================= -->
   <div id="auth-section" class="w-full max-w-sm bg-white p-6 rounded-lg shadow">
     <h2 class="text-xl font-semibold mb-4" id="auth-title">Login</h2>
@@ -23,7 +21,7 @@
     </form>
     <p class="mt-4 text-center text-sm">
       <span id="toggle-msg">Não tem conta?</span>
-      <button id="toggle-auth" class="text-blue-600 underline">Cadastre‑se</button>
+      <button id="toggle-auth" class="text-blue-600 underline">Cadastre-se</button>
     </p>
   </div>
 
@@ -36,11 +34,11 @@
         <button id="logout-btn" class="bg-red-600 text-white px-3 py-1 rounded">Sair</button>
       </div>
     </div>
-    <!-- Search -->
+
     <input id="search-input" type="text" placeholder="Pesquisar aluno..." class="w-full p-2 border rounded mb-4" />
-    <!-- Student List -->
+
     <ul id="student-list" class="space-y-2 mb-4"></ul>
-    <!-- Add Student -->
+
     <details class="bg-white p-4 rounded shadow">
       <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
       <form id="student-form" class="mt-4 space-y-3">
@@ -77,10 +75,7 @@
     <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
     <table class="w-full bg-white rounded shadow">
       <thead class="bg-gray-200">
-        <tr>
-          <th class="p-2 text-left">Mês/Ano</th>
-          <th class="p-2 text-left">Total Recebido</th>
-        </tr>
+        <tr><th class="p-2 text-left">Mês/Ano</th><th class="p-2 text-left">Total Recebido</th></tr>
       </thead>
       <tbody id="totals-body"></tbody>
     </table>
@@ -88,91 +83,82 @@
 
   <!-- ================= FIREBASE & APP LOGIC ================= -->
   <script type="module">
-    // 1. Firebase Imports
+    /* ---------- Firebase imports ---------- */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, onAuthStateChanged,
-         signInWithEmailAndPassword,
-         createUserWithEmailAndPassword,
-         signOut }          from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, collection, addDoc, doc, setDoc, getDoc,
-         getDocs, query, where, orderBy, serverTimestamp }
-         from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref as storageRef,
-         uploadBytes, getDownloadURL }
-         from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+    import { getAuth, onAuthStateChanged,
+             signInWithEmailAndPassword,
+             createUserWithEmailAndPassword,
+             signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getFirestore, collection, addDoc, getDocs,
+             query, where, orderBy, serverTimestamp }
+             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // 2. Firebase Config (substitua pelos seus dados!)
+    /* ---------- Firebase config ---------- */
     const firebaseConfig = {
-      apiKey: "AIzaSyCMj7GTYkXHldMwQS_ub_wKal-D_8Fdgmc",
-      authDomain: "controlealunos-d635a.firebaseapp.com",
-      projectId:  "controlealunos-d635a",
-      storageBucket: "controlealunos-d635a.appspot.com",
+      apiKey:            "AIzaSyCMj7GTYkXHldMwQS_ub_wKal-D_8Fdgmc",
+      authDomain:        "controlealunos-d635a.firebaseapp.com",
+      projectId:         "controlealunos-d635a",
+      storageBucket:     "controlealunos-d635a.appspot.com",
       messagingSenderId: "246922345039",
-      appId: "1:246922345039:web:71f6d0ee2dbf824b38483a"
+      appId:             "1:246922345039:web:71f6d0ee2dbf824b38483a"
     };
 
-    // 3. Init Services
-    const app = initializeApp(firebaseConfig);
+    /* ---------- Init services ---------- */
+    const app  = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const db = getFirestore(app);
-    const storage = getStorage(app);
+    const db   = getFirestore(app);
 
-    // 4. UI References
-    const authSection = document.getElementById('auth-section');
-    const dashboardSection = document.getElementById('dashboard-section');
-    const studentSection = document.getElementById('student-section');
-    const totalsSection = document.getElementById('totals-section');
+    /* ---------- UI refs ---------- */
+    const authSection     = document.getElementById('auth-section');
+    const dashboardSection= document.getElementById('dashboard-section');
+    const studentSection  = document.getElementById('student-section');
+    const totalsSection   = document.getElementById('totals-section');
 
-    // Auth elements
-    const authForm = document.getElementById('auth-form');
-    const authTitle = document.getElementById('auth-title');
+    const authForm   = document.getElementById('auth-form');
+    const authTitle  = document.getElementById('auth-title');
     const toggleAuth = document.getElementById('toggle-auth');
-    const toggleMsg = document.getElementById('toggle-msg');
-    const authBtn = document.getElementById('auth-btn');
+    const toggleMsg  = document.getElementById('toggle-msg');
+    const authBtn    = document.getElementById('auth-btn');
 
-    // Dashboard
-    const studentList = document.getElementById('student-list');
-    const searchInput = document.getElementById('search-input');
-    const studentForm = document.getElementById('student-form');
-    const logoutBtn = document.getElementById('logout-btn');
-    const btnShowTotals = document.getElementById('btn-show-totals');
+    const studentList  = document.getElementById('student-list');
+    const searchInput  = document.getElementById('search-input');
+    const studentForm  = document.getElementById('student-form');
+    const logoutBtn    = document.getElementById('logout-btn');
+    const btnShowTotals= document.getElementById('btn-show-totals');
 
-    // Student Detail
-    const backDashboard = document.getElementById('back-dashboard');
-    const detailPhoto = document.getElementById('detail-photo');
-    const detailName = document.getElementById('detail-name');
-    const detailContact = document.getElementById('detail-contact');
-    const detailFee = document.getElementById('detail-fee');
-    const paymentsList = document.getElementById('payments-list');
-    const btnAddPayment = document.getElementById('btn-add-payment');
+    const backDashboard  = document.getElementById('back-dashboard');
+    const detailPhoto    = document.getElementById('detail-photo');
+    const detailName     = document.getElementById('detail-name');
+    const detailContact  = document.getElementById('detail-contact');
+    const detailFee      = document.getElementById('detail-fee');
+    const paymentsList   = document.getElementById('payments-list');
+    const btnAddPayment  = document.getElementById('btn-add-payment');
 
-    // Totals
     const backDashboard2 = document.getElementById('back-dashboard-2');
-    const totalsBody = document.getElementById('totals-body');
+    const totalsBody     = document.getElementById('totals-body');
 
     let currentUser = null;
     let selectedStudentId = null;
-
-    // ================= AUTH LOGIC =================
     let isLogin = true;
 
+    /* ---------- Auth ---------- */
     toggleAuth.addEventListener('click', () => {
       isLogin = !isLogin;
       authTitle.textContent = isLogin ? 'Login' : 'Cadastro';
-      authBtn.textContent = isLogin ? 'Entrar' : 'Cadastrar';
+      authBtn.textContent   = isLogin ? 'Entrar' : 'Cadastrar';
       toggleMsg.textContent = isLogin ? 'Não tem conta?' : 'Já tem conta?';
-      toggleAuth.textContent = isLogin ? 'Cadastre‑se' : 'Entrar';
+      toggleAuth.textContent= isLogin ? 'Cadastre-se'  : 'Entrar';
     });
 
-    authForm.addEventListener('submit', async (e) => {
+    authForm.addEventListener('submit', async e => {
       e.preventDefault();
       const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
+      const pwd   = document.getElementById('password').value;
       try {
         if (isLogin) {
-          await signInWithEmailAndPassword(auth, email, password);
+          await signInWithEmailAndPassword(auth, email, pwd);
         } else {
-          await createUserWithEmailAndPassword(auth, email, password);
+          await createUserWithEmailAndPassword(auth, email, pwd);
         }
       } catch (err) {
         alert(err.message);
@@ -181,175 +167,150 @@ import { getStorage, ref as storageRef,
 
     logoutBtn.addEventListener('click', () => signOut(auth));
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, user => {
       currentUser = user;
-      if (user) {
-        showDashboard();
-        loadStudents();
-      } else {
-        showAuth();
-      }
+      user ? (showDashboard(), loadStudents()) : showAuth();
     });
 
-    function showAuth() {
-      authSection.classList.remove('hidden');
-      dashboardSection.classList.add('hidden');
-      studentSection.classList.add('hidden');
-      totalsSection.classList.add('hidden');
-    }
+    /* ---------- View helpers ---------- */
+    function showAuth()        { authSection.classList.remove('hidden'); dashboardSection.classList.add('hidden'); studentSection.classList.add('hidden'); totalsSection.classList.add('hidden'); }
+    function showDashboard()   { authSection.classList.add('hidden');    dashboardSection.classList.remove('hidden'); studentSection.classList.add('hidden'); totalsSection.classList.add('hidden'); }
+    function showStudentDetail(){ dashboardSection.classList.add('hidden'); studentSection.classList.remove('hidden'); totalsSection.classList.add('hidden'); }
+    function showTotals()      { dashboardSection.classList.add('hidden'); totalsSection.classList.remove('hidden'); studentSection.classList.add('hidden'); }
 
-    function showDashboard() {
-      authSection.classList.add('hidden');
-      dashboardSection.classList.remove('hidden');
-      studentSection.classList.add('hidden');
-      totalsSection.classList.add('hidden');
-    }
-
-    function showStudentDetail() {
-      dashboardSection.classList.add('hidden');
-      studentSection.classList.remove('hidden');
-      totalsSection.classList.add('hidden');
-    }
-
-    function showTotals() {
-      dashboardSection.classList.add('hidden');
-      totalsSection.classList.remove('hidden');
-      studentSection.classList.add('hidden');
-    }
-
-    // ================= STUDENTS =================
+    /* ---------- Load students ---------- */
     async function loadStudents() {
       studentList.innerHTML = '<li>Carregando...</li>';
       const q = query(collection(db, 'users', currentUser.uid, 'students'), orderBy('name'));
-      const snapshot = await getDocs(q);
+      const snap = await getDocs(q);
       studentList.innerHTML = '';
-      snapshot.forEach(docSnap => {
+      snap.forEach(docSnap => {
         const data = docSnap.data();
         const li = document.createElement('li');
         li.className = 'bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer';
-        li.innerHTML = `
-          <span>${data.name}</span>
-          <span class="text-sm text-gray-500">${data.contact}</span>
-        `;
+        li.innerHTML = `<span>${data.name}</span><span class="text-sm text-gray-500">${data.contact}</span>`;
         li.addEventListener('click', () => openStudent(docSnap.id, data));
         studentList.appendChild(li);
       });
     }
 
-    studentForm.addEventListener('submit', async (e) => {
+    /* ---------- NOVO BLOCO: upload Cloudinary + salvar aluno ---------- */
+    studentForm.addEventListener('submit', async e => {
       e.preventDefault();
-      const name = document.getElementById('student-name').value;
-      const contact = document.getElementById('student-contact').value;
-      const fee = parseFloat(document.getElementById('student-fee').value);
+
+      const name    = document.getElementById('student-name').value.trim();
+      const contact = document.getElementById('student-contact').value.trim();
+      const fee     = parseFloat(document.getElementById('student-fee').value);
       const photoFile = document.getElementById('student-photo').files[0];
+
       let photoURL = '';
       if (photoFile) {
-        const fileRef = storageRef(storage, `students/${currentUser.uid}/${Date.now()}_${photoFile.name}`);
-        await uploadBytes(fileRef, photoFile);
-        photoURL = await getDownloadURL(fileRef);
+        try {
+          const data = new FormData();
+          data.append('file', photoFile);
+          data.append('upload_preset', 'unsigned');     // preset criado no Cloudinary
+          data.append('folder', `students/${currentUser.uid}`);
+
+          const res  = await fetch('https://api.cloudinary.com/v1_1/dqa8jupnh/image/upload', {
+            method: 'POST',
+            body: data
+          });
+          const json = await res.json();
+          if (json.secure_url) {
+            photoURL = json.secure_url;
+          } else {
+            throw new Error(json.error?.message || 'Falha no upload');
+          }
+        } catch (err) {
+          console.error('Erro Cloudinary:', err);
+          alert('Não foi possível enviar a foto. O aluno será salvo sem imagem.');
+        }
       }
-      await addDoc(collection(db, 'users', currentUser.uid, 'students'), {
-        name, contact, fee, photoURL
-      });
-      studentForm.reset();
-      loadStudents();
-      alert('Aluno salvo!');
+
+      try {
+        await addDoc(collection(db, 'users', currentUser.uid, 'students'), {
+          name, contact, fee, photoURL
+        });
+        studentForm.reset();
+        await loadStudents();
+        alert('Aluno salvo!');
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao salvar aluno: ' + err.message);
+      }
     });
 
-    // ================= STUDENT DETAIL & PAYMENTS =================
+    /* ---------- Student detail + payments ---------- */
     async function openStudent(id, data) {
       selectedStudentId = id;
-      detailPhoto.src = data.photoURL || 'https://via.placeholder.com/96x96?text=Foto';
-      detailName.textContent = data.name;
+      detailPhoto.src   = data.photoURL || 'https://via.placeholder.com/96x96?text=Foto';
+      detailName.textContent    = data.name;
       detailContact.textContent = `Contato: ${data.contact}`;
-      detailFee.textContent = `Mensalidade: R$ ${data.fee.toFixed(2)}`;
+      detailFee.textContent     = `Mensalidade: R$ ${data.fee.toFixed(2)}`;
       showStudentDetail();
       await loadPayments();
     }
 
-    backDashboard.addEventListener('click', () => {
-      selectedStudentId = null;
-      showDashboard();
-    });
+    backDashboard.addEventListener('click', () => { selectedStudentId = null; showDashboard(); });
 
     async function loadPayments() {
       paymentsList.innerHTML = '<li>Carregando...</li>';
-      const paymentsCol = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
-      const snapshot = await getDocs(orderByMonthYear(paymentsCol));
+      const col = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
+      const snap = await getDocs(query(col, orderBy('year','desc'), orderBy('month','desc')));
       paymentsList.innerHTML = '';
-      snapshot.forEach(docSnap => {
-        const { month, year, timestamp } = docSnap.data();
+      snap.forEach(p => {
+        const d = p.data();
         const li = document.createElement('li');
-        li.textContent = `${month}/${year} – recebido em ${new Date(timestamp.seconds * 1000).toLocaleString()}`;
+        li.textContent = `${d.month}/${d.year} – recebido em ${new Date(d.timestamp.seconds*1000).toLocaleString()}`;
         paymentsList.appendChild(li);
       });
     }
 
-    // Helper para ordenar por ano/mês
-    function orderByMonthYear(colRef) {
-      return query(colRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
-    }
-
     btnAddPayment.addEventListener('click', async () => {
-      const now = new Date();
-      const month = now.getMonth() + 1; // 1‑12
-      const year = now.getFullYear();
-      const paymentsCol = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
-      // Verifica se já há pagamento deste mês
-      const q = query(paymentsCol, where('month', '==', month), where('year', '==', year));
-      const snap = await getDocs(q);
-      if (!snap.empty) {
-        alert('Pagamento deste mês já registrado.');
-        return;
-      }
-      await addDoc(paymentsCol, {
-        month,
-        year,
-        timestamp: serverTimestamp(),
-        recordedBy: currentUser.uid
-      });
-      loadPayments();
+      const now   = new Date();
+      const month = now.getMonth() + 1;
+      const year  = now.getFullYear();
+      const col   = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
+      const q     = query(col, where('month','==',month), where('year','==',year));
+      if (!(await getDocs(q)).empty) return alert('Pagamento deste mês já registrado.');
+
+      await addDoc(col, { month, year, timestamp: serverTimestamp(), recordedBy: currentUser.uid });
+      await loadPayments();
       alert('Pagamento registrado!');
     });
 
-    // ================= TOTALS =================
-    btnShowTotals.addEventListener('click', async () => {
-      await loadTotals();
-      showTotals();
-    });
-
+    /* ---------- Totals ---------- */
+    btnShowTotals.addEventListener('click', async () => { await loadTotals(); showTotals(); });
     backDashboard2.addEventListener('click', () => showDashboard());
 
     async function loadTotals() {
       totalsBody.innerHTML = '<tr><td class="p-2">Carregando...</td></tr>';
-      const studentsCol = collection(db, 'users', currentUser.uid, 'students');
-      const studentsSnap = await getDocs(studentsCol);
-      const totalsMap = new Map(); // key "month/year" -> total
-      for (const studentDoc of studentsSnap.docs) {
-        const paymentsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'students', studentDoc.id, 'payments'));
-        const fee = studentDoc.data().fee;
-        paymentsSnap.forEach(payDoc => {
-          const { month, year } = payDoc.data();
-          const key = `${month.toString().padStart(2, '0')}/${year}`;
-          const current = totalsMap.get(key) || 0;
-          totalsMap.set(key, current + fee);
+      const colStudents = collection(db, 'users', currentUser.uid, 'students');
+      const snapStudents = await getDocs(colStudents);
+      const totals = new Map();
+      for (const st of snapStudents.docs) {
+        const fee = st.data().fee;
+        const paySnap = await getDocs(collection(db, 'users', currentUser.uid, 'students', st.id, 'payments'));
+        paySnap.forEach(p => {
+          const { month, year } = p.data();
+          const key = `${month.toString().padStart(2,'0')}/${year}`;
+          totals.set(key, (totals.get(key) || 0) + fee);
         });
       }
       totalsBody.innerHTML = '';
-      // Ordena por ano/mês desc
-      [...totalsMap.entries()].sort((a, b) => {
-        const [ma, ya] = a[0].split('/').map(Number);
-        const [mb, yb] = b[0].split('/').map(Number);
-        return yb - ya || mb - ma;
-      }).forEach(([key, total]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `<td class="p-2 border-t">${key}</td><td class="p-2 border-t">R$ ${total.toFixed(2)}</td>`;
-        totalsBody.appendChild(tr);
+      [...totals.entries()].sort((a,b)=>{
+        const [ma,ya]=a[0].split('/').map(Number);
+        const [mb,yb]=b[0].split('/').map(Number);
+        return yb-ya || mb-ma;
+      }).forEach(([key, total])=>{
+        totalsBody.insertAdjacentHTML('beforeend',
+          `<tr><td class="p-2 border-t">${key}</td><td class="p-2 border-t">R$ ${total.toFixed(2)}</td></tr>`);
       });
-      if (totalsBody.innerHTML === '') totalsBody.innerHTML = '<tr><td class="p-2">Nenhum pagamento registrado.</td></tr>';
+      if (!totalsBody.children.length)
+        totalsBody.innerHTML = '<tr><td class="p-2">Nenhum pagamento registrado.</td></tr>';
     }
 
-    // ================= SEARCH =================
+    /* ---------- Search ---------- */
     searchInput.addEventListener('input', () => {
       const term = searchInput.value.toLowerCase();
       [...studentList.children].forEach(li => {
