@@ -57,14 +57,16 @@ function setupHomeNav() {
 });
 
 /* ---------- show helper ---------- */
-function show(target) {
+function show(target){
   const map = {
     home:       'home-section',
     students:   'dashboard-section',
     totals:     'totals-section',
     centers:    'centers-section',
-    defaulters: 'defaulters-section'
+    defaulters: 'defaulters-section',
+    auth:       'auth-section'          // se algum dia precisar mostrar de novo
   };
-  Object.values(map).forEach(id => $(id).classList.add('hidden'));
-  $(map[target]).classList.remove('hidden');
+  /* esconde todas, inclusive auth-section */
+  Object.values(map).forEach(id => $(id)?.classList.add('hidden'));
+  $(map[target])?.classList.remove('hidden');
 }
