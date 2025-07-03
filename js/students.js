@@ -8,23 +8,30 @@ import { $, uploadImage, formatMoney } from './utils.js';
 
 /* paginação */
 const PAGE = 20;
-let lastDoc = null;
-let reachedEnd = false;
+let lastDoc   = null;
+let reachedEnd= false;
 let currentUser;
 let centersMap;
 
 /* ------------------------------------------------------------------ */
-/* 1. INIT – chamado por main.js                                       */
+/* 1. INIT  –  chamado por main.js                                     */
 /* ------------------------------------------------------------------ */
 export function initStudents(user, profile, cMap) {
+
+  /* 🔧 converte para Map caso venha como objeto -------------------- */
+  centersMap = (cMap instanceof Map) ? cMap
+             : new Map(Object.entries(cMap));
+  /* ---------------------------------------------------------------- */
+
   currentUser = user;
-  centersMap  = cMap;
 
   /* --- Popula selects de centro --- */
   const selFilter = $('filter-center');
   const selForm   = $('student-center');
-  selFilter.innerHTML = '<option value="">Todos os Centros</option>';
-  cMap.forEach((c, id) => {
+  selFilter.innerHTML =
+    '<option value="">Todos os Centros</option>';
+
+  centersMap.forEach((c, id) => {
     selFilter.appendChild(new Option(c.name, id));
     selForm  .appendChild(new Option(c.name, id));
   });
@@ -37,34 +44,30 @@ export function initStudents(user, profile, cMap) {
     selForm.disabled  = true;
   }
 
-  /* --- listeners de filtro/pesquisa --- */
+  /* ---- filtros ---- */
   $('search-input').oninput    = () => refresh();
   selFilter.onchange           = () => refresh();
   $('filter-scholar').onchange = () => refresh();
 
-  /* --- paginação --- */
+  /* ---- paginação ---- */
   $('btn-prev').onclick = () => pagePrev();
   $('btn-next').onclick = () => pageNext();
 
-  /* --- formulário novo aluno --- */
+  /* ---- formulário ---- */
   const chkScholar = $('student-scholar');
   const feeInput   = $('student-fee');
   chkScholar.onchange = () => {
-    if (chkScholar.checked) {
-      feeInput.value    = '';
-      feeInput.disabled = true;
-    } else {
-      feeInput.disabled = false;
-    }
+    feeInput.disabled = chkScholar.checked;
+    if (chkScholar.checked) feeInput.value = '';
   };
 
-  /* preview da foto */
   $('student-photo').onchange = e => {
     const f = e.target.files[0];
-    if (!f) return;
-    const img = $('preview-photo');
-    img.src   = URL.createObjectURL(f);
-    img.classList.remove('hidden');
+    if (f) {
+      const img = $('preview-photo');
+      img.src   = URL.createObjectURL(f);
+      img.classList.remove('hidden');
+    }
   };
 
   $('student-form').onsubmit = async e => {
@@ -74,7 +77,7 @@ export function initStudents(user, profile, cMap) {
       await saveStudent();
       e.target.reset();
       $('preview-photo').classList.add('hidden');
-      refresh(true);          // volta à 1ª página
+      refresh(true);
       alert('Aluno salvo!');
     } catch (err) {
       alert(err.message);
@@ -82,8 +85,7 @@ export function initStudents(user, profile, cMap) {
     $('upload-spinner').classList.add('hidden');
   };
 
-  /* carregamento inicial */
-  refresh(true);
+  refresh(true);               // 1ª carga
 }
 
 /* ------------------------------------------------------------------ */
@@ -106,8 +108,7 @@ async function saveStudent() {
 
   await addDoc(
     collection(db, 'users', currentUser.uid, 'students'), {
-      name, contact, centerId, fee,
-      class: cls, guardian, notes,
+      name, contact, centerId, fee, class: cls, guardian, notes,
       isScholarship: isScholar,
       photoURL,
       createdAt: serverTimestamp()
@@ -131,7 +132,6 @@ function buildQuery() {
   if (cen)   q = query(q, where('centerId',      '==', cen));
   if (schol) q = query(q, where('isScholarship', '==', true));
   if (lastDoc) q = query(q, startAfter(lastDoc));
-
   return q;
 }
 
@@ -169,10 +169,5 @@ function renderList(docs, reset) {
   lastDoc = docs[docs.length - 1];
 }
 
-function pagePrev() {
-  lastDoc = null;
-  refresh(true);
-}
+function pagePrev() { lastDoc = null; refresh(true); }
 function pageNext() { refresh(false); }
-
-/* ------------------------------------------------------------------ */
