@@ -1,4 +1,4 @@
-// main.js -----------------------------------------------------------
+// main.js  -----------------------------------------------------------
 // ponto de entrada da aplicação SPA
 
 /* ------------ imports base ------------ */
@@ -15,20 +15,22 @@ import { loadTotals }     from './totals.js';
 import { $ }       from './utils.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
-/* ================================================================== */
-/* 0.  Estado compartilhado                                            */
-/* ================================================================== */
-let firebaseUser = null;   // Firebase User
-let userProfile  = null;   // { role, centerId, … }
-let centersMap   = new Map();
+/* ===================================================================
+ * 0.  Estado compartilhado
+ * =================================================================*/
+let firebaseUser = null;        // Firebase Auth user
+let userProfile  = null;        // { role, centerId, centerName? }
+let centersMap   = new Map();   // Map<id,{name}>
 
-/* atalho para registrar onclicks */
+/* atalho para registrar onclicks com segurança */
 const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
 
-/* ================================================================== */
-/* 1. Bootstrap – dispara depois do login                              */
-/* ================================================================== */
+/* ===================================================================
+ * 1. Bootstrap – dispara assim que o usuário loga
+ * =================================================================*/
 initAuth(async (user) => {
+
+  /* 1-A. dados do usuário / perfil ---------------------------------*/
   firebaseUser = user;
   userProfile  = await getUserProfile(user.uid);
 
@@ -37,19 +39,25 @@ initAuth(async (user) => {
     return;
   }
 
-  centersMap = await initCenters(firebaseUser, userProfile);
+  /* 1-B. carrega centros -------------------------------------------*/
+  //  ⚠️  initCenters agora recebe **apenas** o profile
+  centersMap = await initCenters(userProfile);      // devolve Map
 
+  /* 1-C. inicia módulos dependentes --------------------------------*/
   initStudents  (firebaseUser, userProfile, centersMap);
   initDefaulters(firebaseUser, userProfile, centersMap);
 
+  /* 1-D. interface -------------------------------------------------*/
   setupHomeNav();
   showSection('home');
 });
 
-/* ================================================================== */
-/* 2. Home – botões principais                                         */
-/* ================================================================== */
+/* ===================================================================
+ * 2. Home – botões principais
+ * =================================================================*/
 function setupHomeNav() {
+
+  /* navegação */
   on('btn-nav-search'    , () => showSection('students'));
   on('btn-nav-add'       , () => showSection('addStudent'));
 
@@ -66,12 +74,13 @@ function setupHomeNav() {
     $('btn-nav-centers')?.classList.add('hidden');
   }
 
+  /* logout */
   on('logout-btn', () => signOut());
 }
 
-/* ================================================================== */
-/* 3. Botões “Voltar”                                                  */
-/* ================================================================== */
+/* ===================================================================
+ * 3. Botões “Voltar” das sub-telas
+ * =================================================================*/
 [
   ['back-home-students' , 'home'],
   ['back-home-add'      , 'home'],
@@ -80,10 +89,11 @@ function setupHomeNav() {
   ['back-home-defaulters','home']
 ].forEach(([id, target]) => on(id, () => showSection(target)));
 
-/* ================================================================== */
-/* 4. Router – mostra / esconde sections                               */
-/* ================================================================== */
-function showSection(target) {
+/* ===================================================================
+ * 4. Router – mostra / esconde sections
+ * =================================================================*/
+function showSection(target)
+{
   const sectionId = {
     auth      : 'auth-section',
     home      : 'home-section',
@@ -94,6 +104,9 @@ function showSection(target) {
     defaulters: 'defaulters-section'
   };
 
+  /* esconde todas */
   Object.values(sectionId).forEach(id => $(id)?.classList.add('hidden'));
+
+  /* mostra a desejada */
   $(sectionId[target])?.classList.remove('hidden');
 }
