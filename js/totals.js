@@ -1,5 +1,6 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
+import { $ } from './utils.js';
 
 export async function loadTotals(user){
   const body = $('totals-body');
