@@ -42,6 +42,12 @@
                 class="bg-emerald-600 text-white px-3 py-1 rounded">
           Totais Mensais
         </button>
+
+<button id="btn-show-defaulters"
+        class="bg-orange-500 text-white px-3 py-1 rounded">
+  Inadimplentes
+</button>
+
         <button id="logout-btn"
                 class="bg-red-600 text-white px-3 py-1 rounded">
           Sair
@@ -210,6 +216,34 @@
       <tbody id="totals-body"></tbody>
     </table>
   </div>
+
+<!-- ============ DEFAULTERS ============ -->
+<div id="defaulters-section" class="hidden w-full max-w-2xl">
+  <button id="back-dashboard-3"
+          class="mb-4 text-blue-600 underline">← Voltar</button>
+
+  <h2 class="text-xl font-semibold mb-4">Inadimplentes</h2>
+
+  <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
+    <input id="defaulters-month" type="month"
+           class="p-2 border rounded" />
+    <select id="defaulters-center" class="p-2 border rounded">
+      <option value="">Todos os Centros</option>
+    </select>
+    <button id="btn-load-defaulters"
+            class="bg-orange-500 text-white px-4 py-2 rounded">
+      Buscar
+    </button>
+  </div>
+
+  <table class="w-full bg-white rounded shadow">
+    <thead class="bg-gray-200">
+      <tr><th class="p-2 text-left">Aluno</th>
+          <th class="p-2 text-left">Centro</th></tr>
+    </thead>
+    <tbody id="defaulters-body"></tbody>
+  </table>
+</div>
 
   <!-- ponto de entrada -->
   <script type="module" src="./js/main.js"></script>
