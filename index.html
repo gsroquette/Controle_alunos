@@ -56,39 +56,62 @@
   </div>
 
   <!-- ============ ADD STUDENT ============ -->
-  <div id="add-student-section" class="hidden w-full max-w-3xl">
-    <button id="back-home-add" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
-    <h2 class="text-xl font-semibold mb-4">Adicionar Aluno</h2>
+<div id="add-student-section" class="hidden w-full max-w-3xl">
+  <button id="back-home-add" class="mb-4 text-blue-600 underline">
+    ← Voltar ao início
+  </button>
 
+  <h2 class="text-xl font-semibold mb-4">Adicionar / Editar Aluno</h2>
+
+  <!-- ★ wrapper com id para o JS abrir/fechar -->
+  <div id="student-form-wrapper">
     <form id="student-form" class="space-y-3 bg-white p-4 rounded shadow">
       <select id="student-center" class="w-full p-2 border rounded" required>
         <option value="" disabled selected>Selecione o Centro</option>
       </select>
 
-      <input id="student-name"     class="w-full p-2 border rounded" placeholder="Nome" required />
-      <input id="student-contact"  class="w-full p-2 border rounded" placeholder="Contato" required />
-      <input id="student-class"    class="w-full p-2 border rounded" placeholder="Turma" />
-      <input id="student-guardian" class="w-full p-2 border rounded" placeholder="Responsável" />
-      <textarea id="student-notes" rows="3" class="w-full p-2 border rounded resize-y" placeholder="Observações"></textarea>
+      <input id="student-name"     class="w-full p-2 border rounded"
+             placeholder="Nome" required />
+      <input id="student-contact"  class="w-full p-2 border rounded"
+             placeholder="Contato" required />
+      <input id="student-class"    class="w-full p-2 border rounded"
+             placeholder="Turma" />
+      <input id="student-guardian" class="w-full p-2 border rounded"
+             placeholder="Responsável" />
+      <textarea id="student-notes" rows="3"
+                class="w-full p-2 border rounded resize-y"
+                placeholder="Observações"></textarea>
 
       <!-- Bolsista -->
       <label class="flex items-center space-x-2">
-        <input id="student-scholar" type="checkbox" class="h-4 w-4"> <span>Bolsista</span>
+        <input id="student-scholar" type="checkbox" class="h-4 w-4">
+        <span>Bolsista</span>
       </label>
 
-      <input id="student-fee" type="number" class="w-full p-2 border rounded" placeholder="Valor mensalidade" required />
+      <input id="student-fee" type="number"
+             class="w-full p-2 border rounded"
+             placeholder="Valor mensalidade" required />
 
       <input id="student-photo" type="file" accept="image/*" class="w-full" />
-      <img  id="preview-photo" class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
+      <img  id="preview-photo"
+            class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
+
       <div id="upload-spinner" class="hidden flex justify-center">
-        <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
+        <svg class="animate-spin h-6 w-6 text-blue-600"
+             viewBox="0 0 24 24" fill="none">
+          <circle class="opacity-25" cx="12" cy="12" r="10"
+                  stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor"
+                d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
         </svg>
       </div>
-      <button class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
+
+      <button class="bg-blue-600 text-white w-full py-2 rounded">
+        Salvar
+      </button>
     </form>
   </div>
+</div>
 
   <!-- ============ STUDENT DETAIL ============ -->
   <div id="student-section" class="hidden w-full max-w-3xl">

@@ -89,16 +89,21 @@ export function initStudents(user, profile, cMap) {
   };
 
   /* botão Editar (fica na página de detalhe) */
-  $('btn-edit-student')?.addEventListener('click', () => {
-    if (!currentDetailData || !currentDetailId) return;
+  /* botão Editar (na página de detalhe) */
+$('btn-edit-student')?.addEventListener('click', () => {
+  if (!currentDetailData || !currentDetailId) return;
 
-    fillFormForEdit(currentDetailId, currentDetailData);
+  fillFormForEdit(currentDetailId, currentDetailData);   // preenche form
 
-    /* navega para a lista e abre o <details> */
-    $('student-section')?.classList.add   ('hidden');
-    $('dashboard-section')?.classList.remove('hidden');
-    $('student-form-wrapper')?.setAttribute('open','');
-  });
+  /* --- navega para a tela de cadastro --- */
+  $('student-section')     ?.classList.add   ('hidden');   // esconde detalhe
+  $('dashboard-section')   ?.classList.add   ('hidden');   // esconde lista
+  $('add-student-section') ?.classList.remove('hidden');   // mostra form
+
+  /* garante que o form esteja visível (caso use <details>) */
+  $('student-form-wrapper')?.setAttribute('open', '');
+  $('student-form-wrapper')?.scrollIntoView({ behavior: 'smooth' });
+});
 
   refresh(true);
 }

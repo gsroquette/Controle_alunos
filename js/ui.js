@@ -7,6 +7,7 @@ const sections = {
   auth      : $('auth-section'),
   home      : $('home-section'),
   students  : $('dashboard-section'),
+  addForm   : $('add-student-section'), 
   detail    : $('student-section'),
   totals    : $('totals-section'),
   centers   : $('centers-section'),
