@@ -3,8 +3,10 @@ import {
   collection, query, where, orderBy, limit, startAfter,
   getDocs, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 import { db } from './firebase.js';
-import { $, uploadImage, formatMoney } from './utils.js';
+import { $, uploadImage } from './utils.js';
+import { openStudentDetail } from './ui.js';   // <- já existia em ui.js
 
 /* paginação */
 const PAGE = 20;
@@ -14,18 +16,15 @@ let currentUser;
 let centersMap;
 
 /* ------------------------------------------------------------------ */
-/* 1. INIT  –  chamado por main.js                                     */
+/* 1. INIT                                                             */
 /* ------------------------------------------------------------------ */
 export function initStudents(user, profile, cMap) {
 
-  /* 🔧 converte para Map caso venha como objeto -------------------- */
-  centersMap = (cMap instanceof Map) ? cMap
+  centersMap  = (cMap instanceof Map) ? cMap
              : new Map(Object.entries(cMap));
-  /* ---------------------------------------------------------------- */
-
   currentUser = user;
 
-  /* --- Popula selects de centro --- */
+  /* --- selects de centro --- */
   const selFilter = $('filter-center');
   const selForm   = $('student-center');
   selFilter.innerHTML =
@@ -36,24 +35,23 @@ export function initStudents(user, profile, cMap) {
     selForm  .appendChild(new Option(c.name, id));
   });
 
-  /* secretaria só enxerga seu centro */
   if (profile.role === 'secretaria') {
-    selFilter.value   = profile.centerId;
+    selFilter.value    = profile.centerId;
     selFilter.disabled = true;
-    selForm.value     = profile.centerId;
-    selForm.disabled  = true;
+    selForm.value      = profile.centerId;
+    selForm.disabled   = true;
   }
 
-  /* ---- filtros ---- */
-  $('search-input').oninput    = () => refresh();
-  selFilter.onchange           = () => refresh();
-  $('filter-scholar').onchange = () => refresh();
+  /* filtros */
+  $('search-input').oninput    = () => refresh(true);
+  selFilter.onchange           = () => refresh(true);
+  $('filter-scholar').onchange = () => refresh(true);
 
-  /* ---- paginação ---- */
+  /* paginação */
   $('btn-prev').onclick = () => pagePrev();
   $('btn-next').onclick = () => pageNext();
 
-  /* ---- formulário ---- */
+  /* form aluno */
   const chkScholar = $('student-scholar');
   const feeInput   = $('student-fee');
   chkScholar.onchange = () => {
@@ -63,11 +61,10 @@ export function initStudents(user, profile, cMap) {
 
   $('student-photo').onchange = e => {
     const f = e.target.files[0];
-    if (f) {
-      const img = $('preview-photo');
-      img.src   = URL.createObjectURL(f);
-      img.classList.remove('hidden');
-    }
+    if (!f) return;
+    const img = $('preview-photo');
+    img.src   = URL.createObjectURL(f);
+    img.classList.remove('hidden');
   };
 
   $('student-form').onsubmit = async e => {
@@ -85,7 +82,7 @@ export function initStudents(user, profile, cMap) {
     $('upload-spinner').classList.add('hidden');
   };
 
-  refresh(true);               // 1ª carga
+  refresh(true);
 }
 
 /* ------------------------------------------------------------------ */
@@ -102,13 +99,14 @@ async function saveStudent() {
   const notes     = $('student-notes').value.trim();
   const isScholar = $('student-scholar').checked;
   const photoFile = $('student-photo').files[0];
-  let   photoURL  = '';
+  let photoURL = '';
 
   if (photoFile) photoURL = await uploadImage(photoFile, currentUser.uid);
 
   await addDoc(
     collection(db, 'users', currentUser.uid, 'students'), {
-      name, contact, centerId, fee, class: cls, guardian, notes,
+      name, contact, centerId, fee,
+      class: cls, guardian, notes,
       isScholarship: isScholar,
       photoURL,
       createdAt: serverTimestamp()
@@ -132,13 +130,14 @@ function buildQuery() {
   if (cen)   q = query(q, where('centerId',      '==', cen));
   if (schol) q = query(q, where('isScholarship', '==', true));
   if (lastDoc) q = query(q, startAfter(lastDoc));
+
   return q;
 }
 
 async function refresh(reset = false) {
   if (reset) {
-    lastDoc = null;
-    reachedEnd = false;
+    lastDoc     = null;
+    reachedEnd  = false;
     $('btn-prev').disabled = true;
   }
   if (reachedEnd) return;
@@ -150,10 +149,14 @@ async function refresh(reset = false) {
 }
 
 function renderList(docs, reset) {
+  const term = $('search-input').value.trim().toLowerCase();
   const list = $('student-list');
   if (reset) list.innerHTML = '';
+
   docs.forEach(doc => {
-    const s  = doc.data();
+    const s = doc.data();
+    if (term && !s.name.toLowerCase().includes(term)) return;
+
     const li = document.createElement('li');
     li.className =
       'bg-white p-3 rounded shadow flex justify-between cursor-pointer';
@@ -164,9 +167,12 @@ function renderList(docs, reset) {
       <span class="text-sm text-gray-500">
         ${centersMap.get(s.centerId)?.name || ''}
       </span>`;
+
+    li.onclick = () => openStudentDetail(doc.id, s);
     list.appendChild(li);
   });
-  lastDoc = docs[docs.length - 1];
+
+  if (docs.length) lastDoc = docs[docs.length - 1];
 }
 
 function pagePrev() { lastDoc = null; refresh(true); }
