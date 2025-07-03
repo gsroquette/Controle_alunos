@@ -162,4 +162,3 @@ function pagePrev(){
 function pageNext(){ refresh(false); }
 
 /* ------------------------------------------------------------------ */
-export { initStudents };
