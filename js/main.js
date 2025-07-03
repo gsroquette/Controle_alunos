@@ -8,8 +8,7 @@ import { initDefaulters } from './defaulters.js';
 import { loadTotals }     from './totals.js';
 
 import { $ }              from './utils.js';
-import { signOut }        from
-  'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { signOut }        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 /* estado global simples */
 let curUser     = null;
@@ -21,21 +20,23 @@ let centersMap  = new Map();
 /* ------------------------------------------------- */
 initAuth(async (user) => {
 
-  /* 1. perfil do usuário (role, centerId etc.) */
+  // 1. pega perfil (role, centerId etc.)
   curUser    = user;
   curProfile = await getUserProfile(user.uid);
 
-  /* 2. carrega centros  (aguarda) */
-  centersMap = await initCenters(user);          // devolve Map
+  // 2. inicia centros e recebe Map via callback
+  await initCenters(user, curProfile, (map) => {
+    centersMap = map;
 
-  /* 3. inicia módulos que precisam dos centros */
-  initStudents  (user, curProfile, centersMap);
-  initDefaulters(user, curProfile, centersMap);
+    // 3. inicia os módulos dependentes dos centros
+    initStudents  (user, curProfile, centersMap);
+    initDefaulters(user, curProfile, centersMap);
+  });
 
-  /* 4. configura navegação Home */
+  // 4. configura navegação Home
   setupHomeNav();
 
-  /* 5. mostra tela inicial */
+  // 5. mostra tela inicial
   show('home');
 });
 
@@ -43,29 +44,19 @@ initAuth(async (user) => {
 /* HOME – botões de navegação                        */
 /* ------------------------------------------------- */
 function setupHomeNav () {
-
-  /* pesquisa */
   $('btn-nav-search'    ).onclick = () => show('students');
-
-  /* adicionar aluno = abre lista já com <details> aberto */
-  $('btn-nav-add').onclick = () => show('students', /*openForm=*/true);
-
-  /* totais mensais (carrega antes) */
-  $('btn-nav-totals').onclick = async () => {
+  $('btn-nav-add'       ).onclick = () => show('students', true);
+  $('btn-nav-totals'    ).onclick = async () => {
     await loadTotals(curUser);
     show('totals');
   };
-
-  /* inadimplentes e centros */
   $('btn-nav-defaulters').onclick = () => show('defaulters');
   $('btn-nav-centers'   ).onclick = () => show('centers');
 
-  /* se não for admin, esconde Cadastro de Centro */
   if (curProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
 
-  /* sair */
   $('logout-btn').onclick = () => signOut();
 }
 
@@ -86,7 +77,6 @@ function setupHomeNav () {
 /* SHOW helper                                       */
 /* ------------------------------------------------- */
 function show(target, openForm = false) {
-
   const map = {
     auth:        'auth-section',
     home:        'home-section',
@@ -96,13 +86,9 @@ function show(target, openForm = false) {
     defaulters:  'defaulters-section'
   };
 
-  /* esconde todas as seções */
   Object.values(map).forEach(id => $(id)?.classList.add('hidden'));
-
-  /* mostra a desejada */
   $(map[target])?.classList.remove('hidden');
 
-  /* se veio de “Adicionar Aluno” abre o <details> do formulário */
   if (target === 'students' && openForm) {
     $('student-form-wrapper')?.setAttribute('open', '');
   }
