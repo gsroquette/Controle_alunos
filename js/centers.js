@@ -7,22 +7,26 @@ import {
 
 let user = null;
 
-/* ---------- Init ---------- */
-export function initCenters(u, onCentersLoaded){
+/* ---------- INIT ---------- */
+export function initCenters(u, onReady){
   user = u;
-
   $('center-form').addEventListener('submit', saveCenter);
-
-  loadCenters().then(onCentersLoaded);   // carrega d-pois popula selects
+  loadCenters().then(onReady);      // popula selects e devolve mapa
 }
 
 /* ---------- Salvar ---------- */
 async function saveCenter(e){
   e.preventDefault();
-  const name = $('center-name').value.trim();
-  if(!name) return;
 
-  await addDoc(collection(db,'users',user.uid,'centers'),{ name });
+  const name      = $('center-name').value.trim();
+  const address   = $('center-address').value.trim();
+  const manager   = $('center-manager').value.trim();
+  if(!name || !address || !manager) return alert('Preencha todos os campos!');
+
+  await addDoc(collection(db,'users',user.uid,'centers'),{
+    name, address, manager
+  });
+
   $('center-form').reset();
   await loadCenters();
   alert('Centro salvo!');
@@ -30,26 +34,26 @@ async function saveCenter(e){
 
 /* ---------- Carregar ---------- */
 export async function loadCenters(){
-  const selectStudent = $('student-center');
-  const selectFilter  = $('filter-center');
+  const selStudent = $('student-center');
+  const selFilter  = $('filter-center');
 
-  // zera as opções (deixa 1ª linha)
-  selectStudent.length = 1;
-  selectFilter.length  = 1;
+  selStudent.length = 1;  // mantém 1ª opção
+  selFilter.length  = 1;
 
   const q = query(
     collection(db,'users',user.uid,'centers'),
     orderBy('name')
   );
   const snap = await getDocs(q);
+
   snap.forEach(doc=>{
     const { name } = doc.data();
     const opt1 = new Option(name, doc.id);
     const opt2 = new Option(name, doc.id);
-    selectStudent.appendChild(opt1);
-    selectFilter.appendChild(opt2);
+    selStudent.appendChild(opt1);
+    selFilter.appendChild(opt2);
   });
 
-  // retorna mapa id->name
+  /* devolve {id: name} */
   return Object.fromEntries(snap.docs.map(d=>[d.id,d.data().name]));
 }
