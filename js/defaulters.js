@@ -1,78 +1,79 @@
+/* ---------- imports ---------- */
 import {
-  collection, getDocs, query, where
+  collection, query, where, getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
 import { $ } from './utils.js';
 
-/* -------------------------------------------------- */
-/* 1. INICIALIZAÇÃO – conecta UI                      */
-/* -------------------------------------------------- */
-export function initDefaulters(currentUser, profile, centersMap){
+let currentUser;
+let centersMap;
 
-  /* preenche select de centros */
-  const selCenter = $('defaulters-center');
-  selCenter.innerHTML = '<option value="">Todos os Centros</option>';
-  centersMap.forEach( (c,id) =>{
-    const opt=document.createElement('option');
-    opt.value=id; opt.textContent=c.name;
-    selCenter.appendChild(opt);
-  });
+/* ------------------------------------------------------------------ */
+/* INICIALIZA – chamada por main.js                                    */
+/* ------------------------------------------------------------------ */
+export function initDefaulters(user, cMap) {
 
-  /* restrição para secretaria: só vê o próprio centro */
-  if(profile.role==='secretaria'){
-    selCenter.value = profile.centerId;
-    selCenter.disabled = true;
-  }
+  /* 🔧 garante que seja Map --------------------------------------- */
+  centersMap = (cMap instanceof Map) ? cMap
+             : new Map(Object.entries(cMap));
+  /* --------------------------------------------------------------- */
 
-  /* botão buscar */
-  $('btn-load-defaulters').onclick = async ()=>{
-    const ym   = $('defaulters-month').value;
-    if(!ym){ alert('Escolha mês/ano'); return; }
+  currentUser = user;
 
-    const [yearStr,monthStr] = ym.split('-');
-    const month = Number(monthStr);
-    const year  = Number(yearStr);
+  // Preenche select de centros
+  const sel = $('defaulters-center');
+  sel.innerHTML = '<option value="">Todos os Centros</option>';
+  centersMap.forEach((c, id) =>
+    sel.appendChild(new Option(c.name, id))
+  );
 
-    await loadDefaulters(
-      currentUser,
-      month,
-      year,
-      selCenter.value
-    );
-  };
+  $('btn-load-defaulters').onclick = () => loadDefaulters();
 }
 
-/* -------------------------------------------------- */
-/* 2. CARREGA INADIMPLENTES                           */
-/* -------------------------------------------------- */
-export async function loadDefaulters(user, month, year, centerId){
-  const tbody=$('defaulters-body');
-  tbody.innerHTML='<tr><td class="p-2">Carregando...</td></tr>';
+/* ------------------------------------------------------------------ */
+/* BUSCA INADIMPLENTES                                                */
+/* ------------------------------------------------------------------ */
+async function loadDefaulters() {
+  const tbody   = $('defaulters-body');
+  const monthIn = $('defaulters-month').value;          // yyyy-mm
+  const center  = $('defaulters-center').value;
 
-  /* alunos do usuário */
-  let stQuery=query(collection(db,'users',user.uid,'students'));
-  if(centerId) stQuery=query(stQuery, where('centerId','==',centerId));
+  if (!monthIn) { alert('Escolha o mês!'); return; }
 
-  const students=await getDocs(stQuery);
-  tbody.innerHTML='';
+  const [y, m] = monthIn.split('-').map(Number);
 
-  for(const st of students.docs){
-    const s=st.data();
-    if(s.isScholarship) continue;          // ignora bolsistas
+  tbody.innerHTML = '<tr><td class="p-2">Carregando...</td></tr>';
 
-    const paySnap=await getDocs(query(
-      collection(db,'users',user.uid,'students',st.id,'payments'),
-      where('month','==',month),
-      where('year' ,'==',year)
-    ));
-    if(paySnap.empty){
-      tbody.insertAdjacentHTML('beforeend',
-        `<tr><td class="p-2 border-t">${s.name}</td>
-             <td class="p-2 border-t">${centerId ? '' : (centersMap.get(s.centerId)?.name || '')}</td></tr>`);
+  // percorre todos alunos (poderia otimizar aqui depois)
+  const qStu = center
+    ? query(collection(db, 'users', currentUser.uid, 'students'),
+            where('centerId', '==', center))
+    : collection(db, 'users', currentUser.uid, 'students');
+
+  const snapStu = await getDocs(qStu);
+  const rows = [];
+
+  for (const stuDoc of snapStu.docs) {
+    const s = stuDoc.data();
+    if (s.isScholarship) continue;      // bolsista não conta
+
+    const payCol = collection(
+      db, 'users', currentUser.uid, 'students', stuDoc.id, 'payments'
+    );
+    const payQ = query(payCol,
+      where('month', '==', m), where('year', '==', y));
+    const paySnap = await getDocs(payQ);
+
+    if (paySnap.empty) {
+      rows.push(`
+        <tr>
+          <td class="p-2 border-t">${s.name}</td>
+          <td class="p-2 border-t">${centersMap.get(s.centerId)?.name||''}</td>
+        </tr>`);
     }
   }
 
-  if(!tbody.children.length){
-    tbody.innerHTML='<tr><td class="p-2">Nenhum inadimplente.</td></tr>';
-  }
+  tbody.innerHTML = rows.length
+    ? rows.join('')
+    : '<tr><td class="p-2">Nenhum inadimplente 🎉</td></tr>';
 }
