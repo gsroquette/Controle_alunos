@@ -1,7 +1,11 @@
-/* utilitário simples */
+/* utilitário curto */
 export const $ = id => document.getElementById(id);
 
-/* ----------------- referências das seções ----------------- */
+/* helpers seguros --------------------------------- */
+const safeShow = el => { if (el) el.classList.remove('hidden'); };
+const safeHide = el => { if (el) el.classList.add   ('hidden'); };
+
+/* referências das seções --------------------------- */
 const sections = {
   auth      : $('auth-section'),
   home      : $('home-section'),
@@ -12,49 +16,47 @@ const sections = {
   defaulters: $('defaulters-section')
 };
 
-/* esconde tudo antes de mostrar algo específico */
+/* esconde tudo antes de mostrar algo específico ---- */
 function hideAll() {
-  Object.values(sections).forEach(sec => sec?.classList.add('hidden'));
+  Object.values(sections).forEach(safeHide);
 }
 
-/* ------------------ navegação base ------------------ */
-export function showAuth()       { hideAll(); sections.auth?.classList.remove('hidden'); }
-export function showHome()       { hideAll(); sections.home?.classList.remove('hidden'); }
-export function showStudents()   { hideAll(); sections.students?.classList.remove('hidden'); }
-export function showTotals()     { hideAll(); sections.totals?.classList.remove('hidden'); }
-export function showCenters()    { hideAll(); sections.centers?.classList.remove('hidden'); }
-export function showDefaulters() { hideAll(); sections.defaulters?.classList.remove('hidden'); }
+/* navegação base ----------------------------------- */
+export function showAuth()       { hideAll(); safeShow(sections.auth);       }
+export function showHome()       { hideAll(); safeShow(sections.home);       }
+export function showStudents()   { hideAll(); safeShow(sections.students);   }
+export function showTotals()     { hideAll(); safeShow(sections.totals);     }
+export function showCenters()    { hideAll(); safeShow(sections.centers);    }
+export function showDefaulters() { hideAll(); safeShow(sections.defaulters); }
 
-/* --------------- detalhe do aluno ------------------- */
+/* detalhe do aluno --------------------------------- */
 export function showStudentDetail(id, data) {
-  $('detail-photo')   ?.setAttribute('src', data.photoURL || '');
-  $('detail-name')    ?.textContent = data.name;
-  $('detail-contact') ?.textContent = data.contact  || '';
-  $('detail-class')   ?.textContent = data.class    || '';
-  $('detail-guardian')?.textContent = data.guardian || '';
-  $('detail-fee')     ?.textContent = data.fee
-        ? `Mensalidade: R$ ${data.fee.toFixed(2)}`
-        : 'Bolsista';
-  $('detail-notes')   ?.textContent = data.notes    || '';
-  $('detail-created') ?.textContent =
-        data.createdAt ? new Date(data.createdAt.seconds*1000)
-                           .toLocaleDateString() : '';
+  safeShow(sections.detail);           // garante que a seção existe
+  hideAll(); safeShow(sections.detail);
 
-  hideAll();
-  sections.detail?.classList.remove('hidden');
+  $('detail-photo')   && ($('detail-photo').src = data.photoURL || '');
+  $('detail-name')    && ( $('detail-name').textContent    = data.name );
+  $('detail-contact') && ( $('detail-contact').textContent = data.contact  || '' );
+  $('detail-class')   && ( $('detail-class').textContent   = data.class    || '' );
+  $('detail-guardian')&& ( $('detail-guardian').textContent= data.guardian || '' );
+  $('detail-fee')     && ( $('detail-fee').textContent =
+          data.fee ? `Mensalidade: R$ ${data.fee.toFixed(2)}` : 'Bolsista' );
+  $('detail-notes')   && ( $('detail-notes').textContent   = data.notes    || '' );
+  $('detail-created') && ( $('detail-created').textContent =
+          data.createdAt ? new Date(data.createdAt.seconds*1000)
+                            .toLocaleDateString() : '' );
 }
 
-/* ---------- helper seguro ---------- */
-function bind(id, fn) {
+/* -------- botões “voltar” (registrados somente se existirem) -------- */
+[
+  ['back-dashboard'        , showStudents ],
+  ['back-to-students'      , showStudents ],
+  ['back-dashboard-2'      , showStudents ],
+  ['back-home-students'    , showHome     ],
+  ['back-home-totals'      , showHome     ],
+  ['back-home-centers'     , showHome     ],
+  ['back-home-defaulters'  , showHome     ]
+].forEach(([id, fn]) => {
   const el = $(id);
   if (el) el.onclick = fn;
-}
-
-/* ---------- botões de “voltar” ---------- */
-bind('back-dashboard',          showStudents); // detalhe → lista
-bind('back-to-students',        showStudents); // alias
-bind('back-dashboard-2',        showStudents); // totals → lista
-bind('back-home-students',      showHome);
-bind('back-home-totals',        showHome);
-bind('back-home-centers',       showHome);
-bind('back-home-defaulters',    showHome);
+});
