@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Mensalidades</title>
-  <!-- Tailwind (opcional, CDN) -->
+
   <script src="https://cdn.tailwindcss.com"></script>
-  <style> .hidden{display:none;} </style>
+  <style>.hidden{display:none}</style>
 </head>
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
   <h1 class="text-2xl font-bold mb-4">Controle de Mensalidades</h1>
 
-  <!-- ================= AUTH SECTION ================= -->
+  <!-- ----------- AUTH ----------- -->
   <div id="auth-section" class="w-full max-w-sm bg-white p-6 rounded-lg shadow">
     <h2 class="text-xl font-semibold mb-4" id="auth-title">Login</h2>
     <form id="auth-form" class="space-y-4">
@@ -25,8 +25,9 @@
     </p>
   </div>
 
-  <!-- ================= DASHBOARD SECTION ================= -->
+  <!-- -------- DASHBOARD -------- -->
   <div id="dashboard-section" class="hidden w-full max-w-3xl">
+
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Alunos</h2>
       <div>
@@ -36,31 +37,30 @@
     </div>
 
     <input id="search-input" type="text" placeholder="Pesquisar aluno..." class="w-full p-2 border rounded mb-4" />
-
     <ul id="student-list" class="space-y-2 mb-4"></ul>
 
     <details class="bg-white p-4 rounded shadow">
       <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
       <form id="student-form" class="mt-4 space-y-3">
-        <input id="student-name" type="text" placeholder="Nome" required class="w-full p-2 border rounded" />
-        <input id="student-contact" type="text" placeholder="Contato" required class="w-full p-2 border rounded" />
-        <input id="student-fee" type="number" placeholder="Valor da mensalidade" required class="w-full p-2 border rounded" />
-        <input id="student-photo" type="file" accept="image/*" class="w-full" />
-        <button type="submit" class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
+        <input id="student-name"    class="w-full p-2 border rounded" placeholder="Nome"              required />
+        <input id="student-contact" class="w-full p-2 border rounded" placeholder="Contato"           required />
+        <input id="student-fee"     class="w-full p-2 border rounded" placeholder="Valor mensalidade" required type="number" />
+        <input id="student-photo"   class="w-full" type="file" accept="image/*" />
+        <button class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
       </form>
     </details>
   </div>
 
-  <!-- ================= STUDENT DETAIL SECTION ================= -->
+  <!-- ------ STUDENT DETAIL ------ -->
   <div id="student-section" class="hidden w-full max-w-3xl">
     <button id="back-dashboard" class="mb-4 text-blue-600 underline">← Voltar</button>
     <div class="bg-white p-4 rounded shadow">
       <div class="flex items-center space-x-4 mb-4">
-        <img id="detail-photo" src="" alt="Foto" class="w-24 h-24 rounded-full object-cover" />
+        <img id="detail-photo" class="w-24 h-24 rounded-full object-cover" />
         <div>
-          <h2 id="detail-name" class="text-xl font-semibold"></h2>
-          <p id="detail-contact" class="text-sm text-gray-600"></p>
-          <p id="detail-fee" class="text-sm text-gray-600"></p>
+          <h2 id="detail-name"    class="text-xl font-semibold"></h2>
+          <p  id="detail-contact" class="text-sm text-gray-600"></p>
+          <p  id="detail-fee"     class="text-sm text-gray-600"></p>
         </div>
       </div>
       <h3 class="font-medium mb-2">Pagamentos</h3>
@@ -69,255 +69,17 @@
     </div>
   </div>
 
-  <!-- ================= TOTALS SECTION ================= -->
+  <!-- ---------- TOTALS ---------- -->
   <div id="totals-section" class="hidden w-full max-w-2xl">
     <button id="back-dashboard-2" class="mb-4 text-blue-600 underline">← Voltar</button>
     <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
     <table class="w-full bg-white rounded shadow">
-      <thead class="bg-gray-200">
-        <tr><th class="p-2 text-left">Mês/Ano</th><th class="p-2 text-left">Total Recebido</th></tr>
-      </thead>
+      <thead class="bg-gray-200"><tr><th class="p-2 text-left">Mês/Ano</th><th class="p-2 text-left">Total</th></tr></thead>
       <tbody id="totals-body"></tbody>
     </table>
   </div>
 
-  <!-- ================= FIREBASE & APP LOGIC ================= -->
-  <script type="module">
-    /* ---------- Firebase imports ---------- */
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged,
-             signInWithEmailAndPassword,
-             createUserWithEmailAndPassword,
-             signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs,
-             query, where, orderBy, serverTimestamp }
-             from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-    /* ---------- Firebase config ---------- */
-    const firebaseConfig = {
-      apiKey:            "AIzaSyCMj7GTYkXHldMwQS_ub_wKal-D_8Fdgmc",
-      authDomain:        "controlealunos-d635a.firebaseapp.com",
-      projectId:         "controlealunos-d635a",
-      storageBucket:     "controlealunos-d635a.appspot.com",
-      messagingSenderId: "246922345039",
-      appId:             "1:246922345039:web:71f6d0ee2dbf824b38483a"
-    };
-
-    /* ---------- Init services ---------- */
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getFirestore(app);
-
-    /* ---------- UI refs ---------- */
-    const authSection     = document.getElementById('auth-section');
-    const dashboardSection= document.getElementById('dashboard-section');
-    const studentSection  = document.getElementById('student-section');
-    const totalsSection   = document.getElementById('totals-section');
-
-    const authForm   = document.getElementById('auth-form');
-    const authTitle  = document.getElementById('auth-title');
-    const toggleAuth = document.getElementById('toggle-auth');
-    const toggleMsg  = document.getElementById('toggle-msg');
-    const authBtn    = document.getElementById('auth-btn');
-
-    const studentList  = document.getElementById('student-list');
-    const searchInput  = document.getElementById('search-input');
-    const studentForm  = document.getElementById('student-form');
-    const logoutBtn    = document.getElementById('logout-btn');
-    const btnShowTotals= document.getElementById('btn-show-totals');
-
-    const backDashboard  = document.getElementById('back-dashboard');
-    const detailPhoto    = document.getElementById('detail-photo');
-    const detailName     = document.getElementById('detail-name');
-    const detailContact  = document.getElementById('detail-contact');
-    const detailFee      = document.getElementById('detail-fee');
-    const paymentsList   = document.getElementById('payments-list');
-    const btnAddPayment  = document.getElementById('btn-add-payment');
-
-    const backDashboard2 = document.getElementById('back-dashboard-2');
-    const totalsBody     = document.getElementById('totals-body');
-
-    let currentUser = null;
-    let selectedStudentId = null;
-    let isLogin = true;
-
-    /* ---------- Auth ---------- */
-    toggleAuth.addEventListener('click', () => {
-      isLogin = !isLogin;
-      authTitle.textContent = isLogin ? 'Login' : 'Cadastro';
-      authBtn.textContent   = isLogin ? 'Entrar' : 'Cadastrar';
-      toggleMsg.textContent = isLogin ? 'Não tem conta?' : 'Já tem conta?';
-      toggleAuth.textContent= isLogin ? 'Cadastre-se'  : 'Entrar';
-    });
-
-    authForm.addEventListener('submit', async e => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const pwd   = document.getElementById('password').value;
-      try {
-        if (isLogin) {
-          await signInWithEmailAndPassword(auth, email, pwd);
-        } else {
-          await createUserWithEmailAndPassword(auth, email, pwd);
-        }
-      } catch (err) {
-        alert(err.message);
-      }
-    });
-
-    logoutBtn.addEventListener('click', () => signOut(auth));
-
-    onAuthStateChanged(auth, user => {
-      currentUser = user;
-      user ? (showDashboard(), loadStudents()) : showAuth();
-    });
-
-    /* ---------- View helpers ---------- */
-    function showAuth()        { authSection.classList.remove('hidden'); dashboardSection.classList.add('hidden'); studentSection.classList.add('hidden'); totalsSection.classList.add('hidden'); }
-    function showDashboard()   { authSection.classList.add('hidden');    dashboardSection.classList.remove('hidden'); studentSection.classList.add('hidden'); totalsSection.classList.add('hidden'); }
-    function showStudentDetail(){ dashboardSection.classList.add('hidden'); studentSection.classList.remove('hidden'); totalsSection.classList.add('hidden'); }
-    function showTotals()      { dashboardSection.classList.add('hidden'); totalsSection.classList.remove('hidden'); studentSection.classList.add('hidden'); }
-
-    /* ---------- Load students ---------- */
-    async function loadStudents() {
-      studentList.innerHTML = '<li>Carregando...</li>';
-      const q = query(collection(db, 'users', currentUser.uid, 'students'), orderBy('name'));
-      const snap = await getDocs(q);
-      studentList.innerHTML = '';
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
-        const li = document.createElement('li');
-        li.className = 'bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer';
-        li.innerHTML = `<span>${data.name}</span><span class="text-sm text-gray-500">${data.contact}</span>`;
-        li.addEventListener('click', () => openStudent(docSnap.id, data));
-        studentList.appendChild(li);
-      });
-    }
-
-    /* ---------- NOVO BLOCO: upload Cloudinary + salvar aluno ---------- */
-    studentForm.addEventListener('submit', async e => {
-      e.preventDefault();
-
-      const name    = document.getElementById('student-name').value.trim();
-      const contact = document.getElementById('student-contact').value.trim();
-      const fee     = parseFloat(document.getElementById('student-fee').value);
-      const photoFile = document.getElementById('student-photo').files[0];
-
-      let photoURL = '';
-      if (photoFile) {
-        try {
-          const data = new FormData();
-          data.append('file', photoFile);
-          data.append('upload_preset', 'unsigned');     // preset criado no Cloudinary
-          data.append('folder', `students/${currentUser.uid}`);
-
-          const res  = await fetch('https://api.cloudinary.com/v1_1/dqa8jupnh/image/upload', {
-            method: 'POST',
-            body: data
-          });
-          const json = await res.json();
-          if (json.secure_url) {
-            photoURL = json.secure_url;
-          } else {
-            throw new Error(json.error?.message || 'Falha no upload');
-          }
-        } catch (err) {
-          console.error('Erro Cloudinary:', err);
-          alert('Não foi possível enviar a foto. O aluno será salvo sem imagem.');
-        }
-      }
-
-      try {
-        await addDoc(collection(db, 'users', currentUser.uid, 'students'), {
-          name, contact, fee, photoURL
-        });
-        studentForm.reset();
-        await loadStudents();
-        alert('Aluno salvo!');
-      } catch (err) {
-        console.error(err);
-        alert('Erro ao salvar aluno: ' + err.message);
-      }
-    });
-
-    /* ---------- Student detail + payments ---------- */
-    async function openStudent(id, data) {
-      selectedStudentId = id;
-      detailPhoto.src   = data.photoURL || 'https://via.placeholder.com/96x96?text=Foto';
-      detailName.textContent    = data.name;
-      detailContact.textContent = `Contato: ${data.contact}`;
-      detailFee.textContent     = `Mensalidade: R$ ${data.fee.toFixed(2)}`;
-      showStudentDetail();
-      await loadPayments();
-    }
-
-    backDashboard.addEventListener('click', () => { selectedStudentId = null; showDashboard(); });
-
-    async function loadPayments() {
-      paymentsList.innerHTML = '<li>Carregando...</li>';
-      const col = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
-      const snap = await getDocs(query(col, orderBy('year','desc'), orderBy('month','desc')));
-      paymentsList.innerHTML = '';
-      snap.forEach(p => {
-        const d = p.data();
-        const li = document.createElement('li');
-        li.textContent = `${d.month}/${d.year} – recebido em ${new Date(d.timestamp.seconds*1000).toLocaleString()}`;
-        paymentsList.appendChild(li);
-      });
-    }
-
-    btnAddPayment.addEventListener('click', async () => {
-      const now   = new Date();
-      const month = now.getMonth() + 1;
-      const year  = now.getFullYear();
-      const col   = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
-      const q     = query(col, where('month','==',month), where('year','==',year));
-      if (!(await getDocs(q)).empty) return alert('Pagamento deste mês já registrado.');
-
-      await addDoc(col, { month, year, timestamp: serverTimestamp(), recordedBy: currentUser.uid });
-      await loadPayments();
-      alert('Pagamento registrado!');
-    });
-
-    /* ---------- Totals ---------- */
-    btnShowTotals.addEventListener('click', async () => { await loadTotals(); showTotals(); });
-    backDashboard2.addEventListener('click', () => showDashboard());
-
-    async function loadTotals() {
-      totalsBody.innerHTML = '<tr><td class="p-2">Carregando...</td></tr>';
-      const colStudents = collection(db, 'users', currentUser.uid, 'students');
-      const snapStudents = await getDocs(colStudents);
-      const totals = new Map();
-      for (const st of snapStudents.docs) {
-        const fee = st.data().fee;
-        const paySnap = await getDocs(collection(db, 'users', currentUser.uid, 'students', st.id, 'payments'));
-        paySnap.forEach(p => {
-          const { month, year } = p.data();
-          const key = `${month.toString().padStart(2,'0')}/${year}`;
-          totals.set(key, (totals.get(key) || 0) + fee);
-        });
-      }
-      totalsBody.innerHTML = '';
-      [...totals.entries()].sort((a,b)=>{
-        const [ma,ya]=a[0].split('/').map(Number);
-        const [mb,yb]=b[0].split('/').map(Number);
-        return yb-ya || mb-ma;
-      }).forEach(([key, total])=>{
-        totalsBody.insertAdjacentHTML('beforeend',
-          `<tr><td class="p-2 border-t">${key}</td><td class="p-2 border-t">R$ ${total.toFixed(2)}</td></tr>`);
-      });
-      if (!totalsBody.children.length)
-        totalsBody.innerHTML = '<tr><td class="p-2">Nenhum pagamento registrado.</td></tr>';
-    }
-
-    /* ---------- Search ---------- */
-    searchInput.addEventListener('input', () => {
-      const term = searchInput.value.toLowerCase();
-      [...studentList.children].forEach(li => {
-        const name = li.firstElementChild.textContent.toLowerCase();
-        li.style.display = name.includes(term) ? '' : 'none';
-      });
-    });
-  </script>
+  <!-- ponto de entrada -->
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
