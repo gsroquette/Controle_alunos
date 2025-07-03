@@ -1,4 +1,4 @@
-/* students.js – agora com paginação (20 por página) */
+/* students.js – paginação + novos campos + correção import duplicado */
 import { db } from './firebase.js';
 import { $, } from './utils.js';
 import {
@@ -9,16 +9,15 @@ import { showStudentDetail, showDashboard } from './ui.js';
 import { listPayments, addPayment } from './payments.js';
 
 /* Cloudinary */
-const CLOUD='dqa8jupnh', PRESET='unsigned';
+const CLOUD = 'dqa8jupnh', PRESET = 'unsigned';
 const PAGE_SIZE = 20;
 
-let user=null, role='admin', userCenterId='', centersMap={};
+let user = null, role = 'admin', userCenterId = '', centersMap = {};
 
 /* ---------- paginação state ---------- */
-let currentStart = null;      // DocumentSnapshot ou null (primeira página)
-let pageStack    = [];        // pilha de páginas anteriores
-let hasNextPage  = false;     // se existe página seguinte
-let currentQueryCenter='';    // para detectar mudança de filtro
+let currentStart = null;      // doc snapshot da última página
+let pageStack    = [];        // pilha para “Anterior”
+let hasNextPage  = false;
 
 /* ---------- INIT ---------- */
 export async function initStudents(u, profile, cMap){
@@ -30,30 +29,30 @@ export async function initStudents(u, profile, cMap){
   $('student-form').addEventListener('submit', saveStudent);
   $('student-photo').addEventListener('change', preview);
   $('search-input').addEventListener('input', filterList);
-  $('filter-center').addEventListener('change', ()=>resetAndLoad());
+  $('filter-center').addEventListener('change', resetAndLoad);
   $('back-dashboard').addEventListener('click', ()=>showDashboard());
 
   $('btn-prev').addEventListener('click', ()=>loadPage('prev'));
   $('btn-next').addEventListener('click', ()=>loadPage('next'));
 
-  await resetAndLoad();  // primeira página
+  await resetAndLoad();
 }
 
-/* ---------- preview foto ---------- */
+/* preview foto */
 function preview(){
   const f=$('student-photo').files[0], img=$('preview-photo');
   f ? (img.src=URL.createObjectURL(f),img.classList.remove('hidden'))
     : img.classList.add('hidden');
 }
 
-/* ---------- salvar aluno ---------- */
+/* salvar aluno */
 async function saveStudent(e){
   e.preventDefault();
 
-  const centerId = $('student-center').value;
+  const centerId=$('student-center').value;
   if(!centerId) return alert('Selecione o Centro');
 
-  const data = {
+  const data={
     centerId,
     centerName : centersMap[centerId],
     name       : $('student-name').value.trim(),
@@ -78,93 +77,78 @@ async function saveStudent(e){
         {method:'POST',body:fd});
       const j=await r.json();
       if(j.secure_url) data.photoURL=j.secure_url;
-    }catch(err){console.error(err);alert('Upload falhou');}
+    }catch(err){console.error(err);alert('Falha no upload');}
     $('upload-spinner').classList.add('hidden');
   }
 
   await addDoc(collection(db,'users',user.uid,'students'),data);
   $('student-form').reset();
   $('preview-photo').classList.add('hidden');
-  await resetAndLoad();           // recarrega da primeira página
+  await resetAndLoad();
 }
 
-/* ---------- paginação helpers ---------- */
-function resetAndLoad(){          // chamado quando filtro muda
-  currentStart = null;
-  pageStack    = [];
-  loadPage('first');
+/* ---------- paginação ---------- */
+function resetAndLoad(){
+  currentStart=null; pageStack=[]; loadPage('first');
 }
 
 async function loadPage(dir){
-  const UL = $('student-list');
-  UL.innerHTML = '<li>Carregando…</li>';
+  const UL=$('student-list'); UL.innerHTML='<li>Carregando…</li>';
 
-  /* base query */
   let q=query(collection(db,'users',user.uid,'students'),orderBy('name'));
-
   const filter = role!=='admin' ? userCenterId : $('filter-center').value;
-  currentQueryCenter = filter;
-
-  if(filter){
-    q=query(q, where('centerId','==',filter));
-  }
+  if(filter){ q=query(q, where('centerId','==',filter)); }
 
   if(dir==='next' && currentStart){
     pageStack.push(currentStart);
     q=query(q, startAfter(currentStart), limit(PAGE_SIZE));
   }else if(dir==='prev'){
-    currentStart = pageStack.pop() || null;
-    // recálculo: para prev, pegamos o snapshot logo após o anterior da pilha
-    if(currentStart){
-      q=query(q, startAfter(currentStart), limit(PAGE_SIZE));
-    }else{
-      q=query(q, limit(PAGE_SIZE));
-    }
-  }else{ // first
+    currentStart=pageStack.pop()||null;
+    if(currentStart){ q=query(q, startAfter(currentStart), limit(PAGE_SIZE)); }
+    else            { q=query(q, limit(PAGE_SIZE)); }
+  }else{
     q=query(q, limit(PAGE_SIZE));
   }
 
-  const snap = await getDocs(q);
+  const snap=await getDocs(q);
 
-  /* monta lista */
+  /* exibe lista */
   UL.innerHTML='';
   snap.forEach(doc=>{
     const d=doc.data();
-    const li=document.createElement('li');
-    li.className='bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer';
-    li.innerHTML=`<span>${d.name}</span><span class="text-sm text-gray-500">${d.centerName}</span>`;
-    li.onclick = ()=>openDetail(doc.id,d);
-    UL.appendChild(li);
+    UL.insertAdjacentHTML('beforeend',
+      `<li class="bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer">
+         <span>${d.name}</span>
+         <span class="text-sm text-gray-500">${d.centerName}</span>
+       </li>`);
+    UL.lastElementChild.onclick=()=>openDetail(doc.id,d);
   });
 
-  /* atualiza estado */
-  hasNextPage = snap.size === PAGE_SIZE;
-  currentStart = snap.docs[snap.docs.length-1] || currentStart;
+  /* update estados */
+  hasNextPage = snap.size===PAGE_SIZE;
+  currentStart = snap.docs[snap.docs.length-1]||currentStart;
 
   /* controles UI */
   const controls=$('pagination-controls');
   controls.classList.toggle('hidden', snap.empty);
   $('btn-prev').disabled = pageStack.length===0;
   $('btn-next').disabled = !hasNextPage;
-
-  const pageNum = pageStack.length + 1;
-  $('page-info').textContent = `Página ${pageNum}${hasNextPage?'':' (final)'}`;
+  $('page-info').textContent = `Página ${pageStack.length+1}${hasNextPage?'':' (final)'}`;
 }
 
-/* ---------- busca em tempo real (nome) dentro da página ---------- */
+/* ---------- busca local ---------- */
 function filterList(){
-  const term = $('search-input').value.toLowerCase();
+  const term=$('search-input').value.toLowerCase();
   [...$('student-list').children].forEach(li=>{
-    const name = li.firstElementChild.textContent.toLowerCase();
+    const name=li.firstElementChild.textContent.toLowerCase();
     li.style.display = name.includes(term) ? '' : 'none';
   });
 }
 
 /* ---------- detalhe ---------- */
-import { showStudentDetail } from './ui.js';
 function openDetail(id,d){
   $('detail-photo').src = d.photoURL||'https://via.placeholder.com/96?text=Foto';
-  $('detail-name').textContent     = d.name;
+  $('detail-name').textContent = d.name;
   $('detail-contact').textContent  = 'Contato: '+d.contact;
   $('detail-class').textContent    = d.class ? 'Turma: '+d.class : '';
   $('detail-guardian').textContent = d.guardian ? 'Responsável: '+d.guardian : '';
