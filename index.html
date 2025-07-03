@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Mensalidades</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <style>.hidden{display:none}</style>
 </head>
@@ -14,21 +13,19 @@
   <!-- ============ AUTH ============ -->
   <div id="auth-section" class="w-full max-w-sm bg-white p-6 rounded-lg shadow">
     <h2 id="auth-title" class="text-xl font-semibold mb-4">Login</h2>
-
     <form id="auth-form" class="space-y-4">
       <input id="email"     class="w-full p-2 border rounded" type="email"    placeholder="Email" required />
       <input id="password"  class="w-full p-2 border rounded" type="password" placeholder="Senha" required />
       <button id="auth-btn" class="w-full bg-blue-600 text-white py-2 rounded">Entrar</button>
     </form>
-
     <p class="mt-4 text-center text-sm">
       <span id="toggle-msg">Não tem conta?</span>
       <button id="toggle-auth" class="text-blue-600 underline">Cadastre-se</button>
     </p>
   </div>
 
-  <!-- ============ HOME (após login) ============ -->
-  <div id="home-section" class="hidden w-full max-w-2xl">
+  <!-- ============ HOME ============ -->
+  <div id="home-section" class="hidden w-full max-w-xl">
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       <button id="btn-nav-search"
@@ -46,11 +43,15 @@
         Totais Mensais
       </button>
 
-      <button id="btn-nav-defaulters"
-              class="bg-orange-500 text-white rounded p-6 text-lg font-semibold shadow">
-        Inadimplentes
+      <button id="btn-nav-centers"
+              class="bg-indigo-600 text-white rounded p-6 text-lg font-semibold shadow">
+        Cadastro de Centro
       </button>
 
+      <button id="btn-nav-defaulters"
+              class="bg-orange-500 text-white rounded p-6 text-lg font-semibold shadow md:col-span-2">
+        Alunos Inadimplentes
+      </button>
     </div>
 
     <button id="btn-nav-logout"
@@ -59,64 +60,17 @@
     </button>
   </div>
 
-  <!-- ============ DASHBOARD (lista + formulários) ============ -->
-  <div id="dashboard-section" class="hidden w-full max-w-3xl">
+  <!-- ============ STUDENTS (lista + form) ============ -->
+  <div id="students-section" class="hidden w-full max-w-3xl">
+
+    <button id="back-home-students" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
 
     <!-- Barra topo -->
     <div class="flex justify-between items-center mb-4">
       <h2 class="text-xl font-semibold">Alunos</h2>
-      <div class="space-x-2">
-        <button id="btn-show-totals"
-                class="bg-emerald-600 text-white px-3 py-1 rounded">
-          Totais Mensais
-        </button>
-
-        <button id="btn-show-defaulters"
-                class="bg-orange-500 text-white px-3 py-1 rounded">
-          Inadimplentes
-        </button>
-
-        <button id="logout-btn"
-                class="bg-red-600 text-white px-3 py-1 rounded">
-          Sair
-        </button>
-      </div>
     </div>
 
-    <!-- ========= FORMULÁRIO CENTRO (admin) ========= -->
-    <details id="center-wrapper" class="bg-white p-4 rounded shadow mb-4">
-      <summary class="cursor-pointer font-medium">+ Novo Centro</summary>
-      <form id="center-form" class="mt-4 space-y-3 max-w-md">
-        <input id="center-name"    class="w-full p-2 border rounded" placeholder="Nome do Centro"    required />
-        <input id="center-address" class="w-full p-2 border rounded" placeholder="Endereço completo" required />
-        <input id="center-manager" class="w-full p-2 border rounded" placeholder="Responsável"       required />
-        <button class="bg-indigo-600 text-white w-full py-2 rounded">Salvar Centro</button>
-      </form>
-    </details>
-
-    <!-- ========= FORMULÁRIO USUÁRIO (admin) ========= -->
-    <details id="user-wrapper" class="bg-white p-4 rounded shadow mb-4">
-      <summary class="cursor-pointer font-medium">+ Novo Usuário</summary>
-      <form id="user-form" class="mt-4 space-y-3 max-w-md">
-        <input id="newuser-email" class="w-full p-2 border rounded" type="email"    placeholder="E-mail" required />
-        <input id="newuser-pass"  class="w-full p-2 border rounded" type="password" placeholder="Senha"  required minlength="6" />
-        <select id="newuser-role" class="w-full p-2 border rounded" required>
-          <option value="admin">Administrador</option>
-          <option value="secretaria">Secretaria</option>
-        </select>
-        <div id="wrapper-center-select" class="hidden">
-          <select id="newuser-center" class="w-full p-2 border rounded">
-            <option value="" disabled selected>Selecione o Centro</option>
-          </select>
-        </div>
-        <button id="btn-save-user"
-                class="bg-teal-600 text-white w-full py-2 rounded">
-          Salvar Usuário
-        </button>
-      </form>
-    </details>
-
-    <!-- ========= FILTROS ========= -->
+    <!-- Filtros -->
     <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
       <input id="search-input" placeholder="Pesquisar aluno..."
              class="flex-1 p-2 border rounded mb-2 md:mb-0" />
@@ -131,19 +85,13 @@
     <!-- Paginação -->
     <div id="pagination-controls"
          class="hidden flex justify-between items-center mt-2">
-      <button id="btn-prev"
-              class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">
-        ← Anterior
-      </button>
+      <button id="btn-prev" class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">← Anterior</button>
       <span id="page-info" class="text-sm"></span>
-      <button id="btn-next"
-              class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">
-        Próximo →
-      </button>
+      <button id="btn-next" class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">Próximo →</button>
     </div>
 
     <!-- ========= FORMULÁRIO ALUNO ========= -->
-    <details class="bg-white p-4 rounded shadow">
+    <details id="student-form-wrapper" class="bg-white p-4 rounded shadow">
       <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
       <form id="student-form" class="mt-4 space-y-3">
 
@@ -177,10 +125,10 @@
     </details>
   </div>
 
-  <!-- ============ STUDENT DETAIL ============ -->
-  <div id="student-section" class="hidden w-full max-w-3xl">
-    <button id="back-dashboard"
-            class="mb-4 text-blue-600 underline">← Voltar</button>
+  <!-- ============ STUDENT DETAIL (mesma estrutura) ============ -->
+  <div id="student-detail-section" class="hidden w-full max-w-3xl">
+    <button id="back-to-students" class="mb-4 text-blue-600 underline">← Voltar à lista</button>
+    <!-- conteúdo igual ao detalhe existente -->
     <div class="bg-white p-4 rounded shadow">
       <div class="flex items-center space-x-4 mb-4">
         <img id="detail-photo" class="w-24 h-24 rounded-full object-cover" />
@@ -205,23 +153,35 @@
 
   <!-- ============ TOTALS ============ -->
   <div id="totals-section" class="hidden w-full max-w-2xl">
-    <button id="back-dashboard-2"
-            class="mb-4 text-blue-600 underline">← Voltar</button>
+    <button id="back-home-totals" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
     <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
     <table class="w-full bg-white rounded shadow">
       <thead class="bg-gray-200">
-        <tr><th class="p-2 text-left">Mês/Ano</th>
-            <th class="p-2 text-left">Total</th></tr>
+        <tr><th class="p-2 text-left">Mês/Ano</th><th class="p-2 text-left">Total</th></tr>
       </thead>
       <tbody id="totals-body"></tbody>
     </table>
   </div>
 
+  <!-- ============ CENTERS (admin) ============ -->
+  <div id="centers-section" class="hidden w-full max-w-lg">
+    <button id="back-home-centers" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
+    <h2 class="text-xl font-semibold mb-4">Cadastro de Centro</h2>
+    <!-- reaproveita center-wrapper -->
+    <div id="center-wrapper" class="bg-white p-4 rounded shadow">
+      <form id="center-form" class="space-y-3">
+        <input id="center-name"    class="w-full p-2 border rounded" placeholder="Nome do Centro"    required />
+        <input id="center-address" class="w-full p-2 border rounded" placeholder="Endereço completo" required />
+        <input id="center-manager" class="w-full p-2 border rounded" placeholder="Responsável"       required />
+        <button class="bg-indigo-600 text-white w-full py-2 rounded">Salvar Centro</button>
+      </form>
+    </div>
+  </div>
+
   <!-- ============ DEFAULTERS ============ -->
   <div id="defaulters-section" class="hidden w-full max-w-2xl">
-    <button id="back-dashboard-3"
-            class="mb-4 text-blue-600 underline">← Voltar</button>
-    <h2 class="text-xl font-semibold mb-4">Inadimplentes</h2>
+    <button id="back-home-defaulters" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
+    <h2 class="text-xl font-semibold mb-4">Alunos Inadimplentes</h2>
     <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
       <input id="defaulters-month" type="month" class="p-2 border rounded" />
       <select id="defaulters-center" class="p-2 border rounded">
@@ -234,14 +194,13 @@
     </div>
     <table class="w-full bg-white rounded shadow">
       <thead class="bg-gray-200">
-        <tr><th class="p-2 text-left">Aluno</th>
-            <th class="p-2 text-left">Centro</th></tr>
+        <tr><th class="p-2 text-left">Aluno</th><th class="p-2 text-left">Centro</th></tr>
       </thead>
       <tbody id="defaulters-body"></tbody>
     </table>
   </div>
 
-  <!-- entrada -->
+  <!-- ponto de entrada -->
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>

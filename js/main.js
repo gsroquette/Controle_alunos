@@ -5,59 +5,64 @@ import { initStudents }  from './students.js';
 import { initDefaulters }from './defaulters.js';
 import { loadTotals }    from './totals.js';
 import { $, }            from './utils.js';
-import { showTotals, showDashboard } from './ui.js';
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-let currentUser=null;     // para loadTotals etc.
+let curUser=null, curRole='admin';
 
 initAuth(async user=>{
-  currentUser = user;
+  curUser = user;
   const profile = await getUserProfile(user.uid);
+  curRole = profile.role;
 
-  /* Centros → alunos → inadimplentes */
-  initCenters(user, profile, (centersMap)=>{
-    initStudents   (user, profile, centersMap);
-    initDefaulters (user, profile, centersMap);
-    setupHomeNav(profile.role);
-    showSection('home-section');            // abre Home após tudo pronto
+  /* Inicia módulos */
+  initCenters  (user, profile, (centersMap)=>{
+    initStudents  (user, profile, centersMap);
+    initDefaulters(user, profile, centersMap);
+    setupHomeNav();             // só depois de centros carregados
+    show('home');               // abre Home
   });
 });
 
-/* ========== navegação Home ========= */
-function setupHomeNav(role){
-  $('btn-nav-search').onclick = ()=>{ showDashboard(); };
+/* ------------- navegação Home ------------- */
+function setupHomeNav(){
+  $('btn-nav-search').onclick = ()=>{ show('students'); };
   $('btn-nav-add').onclick = ()=>{
-    showDashboard();
-    // abre o <details> do formulário aluno
-    document.querySelector('#dashboard-section details[open]')?.removeAttribute('open');
-    document.querySelector('#dashboard-section details summary').click();
+    show('students');
+    $('student-form-wrapper').open = true;
   };
   $('btn-nav-totals').onclick = async ()=>{
-    await loadTotals(currentUser);
-    showTotals();
+    await loadTotals(curUser);
+    show('totals');
   };
-  $('btn-nav-defaulters').onclick = ()=>{
-    showSection('defaulters-section');
-  };
-  $('btn-nav-logout').onclick = ()=>signOut();
+  $('btn-nav-defaulters').onclick = ()=>{ show('defaulters'); };
 
-  // secretaria não pode cadastrar aluno em outro centro, mas botão é ok
-  // (admin e secretaria têm acesso igual nos botões atuais)
+  $('btn-nav-centers').onclick = ()=>{ show('centers'); };
+  // mostra botão Centers só para admin
+  if(curRole!=='admin') $('btn-nav-centers').classList.add('hidden');
+
+  $('btn-nav-logout').onclick = ()=>signOut();
 }
 
-/* ========== botões dentro das telas ========= */
-$('btn-show-totals').onclick = async ()=>{
-  await loadTotals(currentUser);
-  showTotals();
-};
-$('back-dashboard-2').onclick = ()=>showDashboard();
+/* ------------- botões Voltar ------------- */
+[
+  ['back-home-students','home'],
+  ['back-to-students'  ,'students'],
+  ['back-home-totals'  ,'home'],
+  ['back-home-centers' ,'home'],
+  ['back-home-defaulters','home']
+].forEach(([id,target])=>{
+  $(id).onclick = ()=>show(target);
+});
 
-$('btn-show-defaulters').onclick = ()=>showSection('defaulters-section');
-$('back-dashboard-3').onclick = ()=>showDashboard();
-
-/* controla visibilidade das seções */
-function showSection(id){
-  ['home-section','dashboard-section','student-section',
-   'totals-section','defaulters-section'
-  ].forEach(sec=>$(sec).classList.toggle('hidden', sec!==id));
+/* ------------- show helper ------------- */
+function show(target){
+  const map={
+    home      :'home-section',
+    students  :'students-section',
+    totals    :'totals-section',
+    centers   :'centers-section',
+    defaulters:'defaulters-section'
+  };
+  Object.values(map).forEach(id=>$(id).classList.add('hidden'));
+  $(map[target]).classList.remove('hidden');
 }
