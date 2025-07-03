@@ -10,9 +10,10 @@ let role = 'admin';
 let userCenterId = '';
 
 /* ---------------- INIT ---------------- */
-/* se profile vier null/undefined →         *
- * usa objeto-padrão { role:'admin' }        */
-export async function initCenters(u, profile = { role: 'admin', centerId: '' }) {
+export async function initCenters(
+  u,
+  profile = { role: 'admin', centerId: '' }
+) {
   user         = u;
   role         = profile.role;
   userCenterId = profile.centerId || '';
@@ -23,10 +24,10 @@ export async function initCenters(u, profile = { role: 'admin', centerId: '' }) 
     $('center-form')?.addEventListener('submit', saveCenter);
   }
 
-  return await loadCenters();           // devolve Map<id,{name}>
+  return await loadCenters();         // devolve Map<id,{name}>
 }
 
-/* ---------- Salvar Centro ---------- */
+/* ---------- salvar novo centro ---------- */
 async function saveCenter(e) {
   e.preventDefault();
   const name    = $('center-name').value.trim();
@@ -48,7 +49,7 @@ async function saveCenter(e) {
   alert('Centro salvo!');
 }
 
-/* ---------- Carregar Centros ---------- */
+/* ---------- carregar & popular selects ---------- */
 export async function loadCenters() {
   const selStudent = $('student-center');
   const selFilter  = $('filter-center');
@@ -56,18 +57,17 @@ export async function loadCenters() {
   selStudent && (selStudent.length = 1);
   selFilter  && (selFilter.length  = 1);
 
-  const q = query(
-    collection(db, 'users', user.uid, 'centers'),
-    orderBy('name')
+  const snap = await getDocs(
+    query(collection(db, 'users', user.uid, 'centers'), orderBy('name'))
   );
-  const snap = await getDocs(q);
 
-  snap.forEach(doc => {
-    const { name } = doc.data();
-    selStudent?.appendChild(new Option(name, doc.id));
-    selFilter ?.appendChild(new Option(name, doc.id));
+  snap.forEach((d) => {
+    const { name } = d.data();
+    selStudent?.appendChild(new Option(name, d.id));
+    selFilter ?.appendChild(new Option(name, d.id));
   });
 
+  /* restrições secretaria */
   if (role !== 'admin') {
     selFilter ?.setAttribute('disabled', '');
     selStudent?.setAttribute('disabled', '');
@@ -75,6 +75,8 @@ export async function loadCenters() {
     selStudent.value = userCenterId;
   }
 
-  /* devolve Map<id,{name}> */
-  return new Map(snap.docs.map(d => [doc.id, { name: doc.data().name }]));
+  /* ------ retorno: Map<id,{name}> ------ */
+  return new Map(
+    snap.docs.map((d) => [d.id, { name: d.data().name }]) // <<< aqui estava o erro
+  );
 }
