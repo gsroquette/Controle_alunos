@@ -1,6 +1,6 @@
-import { auth }   from './firebase.js';
-import { $, }     from './utils.js';
-import { showAuth, showDashboard } from './ui.js';
+import { auth }  from './firebase.js';
+import { $, }    from './utils.js';
+import { showAuth } from './ui.js';          // <-- showDashboard removido
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -10,7 +10,7 @@ import {
 
 let isLogin = true;
 
-export function initAuth(callbackLogged) {
+export function initAuth(callbackLogged){
 
   const toggleAuth = $('toggle-auth');
   const authTitle  = $('auth-title');
@@ -19,7 +19,8 @@ export function initAuth(callbackLogged) {
   const authForm   = $('auth-form');
   const logoutBtn  = $('logout-btn');
 
-  toggleAuth.addEventListener('click', () => {
+  /* alterna login / cadastro */
+  toggleAuth.addEventListener('click', ()=>{
     isLogin = !isLogin;
     authTitle.textContent = isLogin ? 'Login' : 'Cadastro';
     authBtn.textContent   = isLogin ? 'Entrar' : 'Cadastrar';
@@ -27,7 +28,8 @@ export function initAuth(callbackLogged) {
     toggleAuth.textContent= isLogin ? 'Cadastre-se'  : 'Entrar';
   });
 
-  authForm.addEventListener('submit', async (e)=>{
+  /* submit */
+  authForm.addEventListener('submit', async e=>{
     e.preventDefault();
     const email = $('email').value.trim();
     const pwd   = $('password').value.trim();
@@ -40,12 +42,14 @@ export function initAuth(callbackLogged) {
     }catch(err){ alert(err.message); }
   });
 
+  /* logout */
   logoutBtn.addEventListener('click', ()=>signOut(auth));
 
+  /* listener global */
   onAuthStateChanged(auth, user=>{
     if(user){
-      showDashboard();
-      callbackLogged(user);
+      // ❌ showDashboard(); – removido
+      callbackLogged(user);    // main.js exibe a Home
     }else{
       showAuth();
     }
