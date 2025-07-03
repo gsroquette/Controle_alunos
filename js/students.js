@@ -6,7 +6,7 @@ import {
 
 import { db } from './firebase.js';
 import { $, uploadImage } from './utils.js';
-import { openStudentDetail } from './ui.js';   // <- já existia em ui.js
+import { showStudentDetail } from './ui.js';   // <- nome correto
 
 /* paginação */
 const PAGE = 20;
@@ -16,7 +16,7 @@ let currentUser;
 let centersMap;
 
 /* ------------------------------------------------------------------ */
-/* 1. INIT                                                             */
+/* INIT                                                                */
 /* ------------------------------------------------------------------ */
 export function initStudents(user, profile, cMap) {
 
@@ -24,7 +24,7 @@ export function initStudents(user, profile, cMap) {
              : new Map(Object.entries(cMap));
   currentUser = user;
 
-  /* --- selects de centro --- */
+  /* selects de centro */
   const selFilter = $('filter-center');
   const selForm   = $('student-center');
   selFilter.innerHTML =
@@ -86,7 +86,7 @@ export function initStudents(user, profile, cMap) {
 }
 
 /* ------------------------------------------------------------------ */
-/* 2. SALVAR ALUNO                                                     */
+/* SALVAR ALUNO                                                        */
 /* ------------------------------------------------------------------ */
 async function saveStudent() {
   const name      = $('student-name').value.trim();
@@ -115,7 +115,7 @@ async function saveStudent() {
 }
 
 /* ------------------------------------------------------------------ */
-/* 3. LISTAGEM + PAGINAÇÃO                                             */
+/* LISTAGEM + PAGINAÇÃO                                                */
 /* ------------------------------------------------------------------ */
 function buildQuery() {
   const cen   = $('filter-center').value;
@@ -168,7 +168,7 @@ function renderList(docs, reset) {
         ${centersMap.get(s.centerId)?.name || ''}
       </span>`;
 
-    li.onclick = () => openStudentDetail(doc.id, s);
+    li.onclick = () => showStudentDetail(doc.id, s);   // <- uso correto
     list.appendChild(li);
   });
 
