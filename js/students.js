@@ -1,166 +1,72 @@
-/* students.js – paginação + novos campos + correção import duplicado */
-import { db } from './firebase.js';
-import { $, } from './utils.js';
 import {
-  collection, addDoc, getDocs,
-  query, orderBy, where, startAfter, limit, serverTimestamp
+  collection, addDoc, query, orderBy, getDocs,
+  where, doc, updateDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { showStudentDetail, showDashboard } from './ui.js';
-import { listPayments, addPayment } from './payments.js';
+import { uploadImage } from './utils.js';
+import { db } from './firebase.js';
+import { $, formatMoney } from './utils.js';
 
-/* Cloudinary */
-const CLOUD = 'dqa8jupnh', PRESET = 'unsigned';
-const PAGE_SIZE = 20;
+/* ---------- salvar novo aluno ---------- */
+export async function saveStudent(currentUser){
+  const name       = $('student-name').value.trim();
+  const contact    = $('student-contact').value.trim();
+  const feeInput   = $('student-fee');
+  const isScholar  = $('student-scholar').checked;
+  const fee        = isScholar ? 0 : parseFloat(feeInput.value);
+  const photoFile  = $('student-photo').files[0];
+  const centerId   = $('student-center').value;
+  const cls        = $('student-class').value.trim();
+  const guardian   = $('student-guardian').value.trim();
+  const notes      = $('student-notes').value.trim();
 
-let user = null, role = 'admin', userCenterId = '', centersMap = {};
-
-/* ---------- paginação state ---------- */
-let currentStart = null;      // doc snapshot da última página
-let pageStack    = [];        // pilha para “Anterior”
-let hasNextPage  = false;
-
-/* ---------- INIT ---------- */
-export async function initStudents(u, profile, cMap){
-  user         = u;
-  role         = profile.role;
-  userCenterId = profile.centerId || '';
-  centersMap   = cMap;
-
-  $('student-form').addEventListener('submit', saveStudent);
-  $('student-photo').addEventListener('change', preview);
-  $('search-input').addEventListener('input', filterList);
-  $('filter-center').addEventListener('change', resetAndLoad);
-  + // Botão voltar ao início (id novo)
-  + $('back-home-students').addEventListener('click', ()=>show('home'));
-
-  $('btn-prev').addEventListener('click', ()=>loadPage('prev'));
-  $('btn-next').addEventListener('click', ()=>loadPage('next'));
-
-  await resetAndLoad();
-}
-
-/* preview foto */
-function preview(){
-  const f=$('student-photo').files[0], img=$('preview-photo');
-  f ? (img.src=URL.createObjectURL(f),img.classList.remove('hidden'))
-    : img.classList.add('hidden');
-}
-
-/* salvar aluno */
-async function saveStudent(e){
-  e.preventDefault();
-
-  const centerId=$('student-center').value;
-  if(!centerId) return alert('Selecione o Centro');
-
-  const data={
-    centerId,
-    centerName : centersMap[centerId],
-    name       : $('student-name').value.trim(),
-    contact    : $('student-contact').value.trim(),
-    class      : $('student-class').value.trim(),
-    guardian   : $('student-guardian').value.trim(),
-    notes      : $('student-notes').value.trim(),
-    fee        : +$('student-fee').value,
-    createdAt  : serverTimestamp()
-  };
-
-  /* upload opcional */
-  const file=$('student-photo').files[0];
-  if(file){
-    $('upload-spinner').classList.remove('hidden');
-    try{
-      const fd=new FormData();
-      fd.append('file',file);
-      fd.append('upload_preset',PRESET);
-      fd.append('folder',`students/${user.uid}`);
-      const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD}/image/upload`,
-        {method:'POST',body:fd});
-      const j=await r.json();
-      if(j.secure_url) data.photoURL=j.secure_url;
-    }catch(err){console.error(err);alert('Falha no upload');}
-    $('upload-spinner').classList.add('hidden');
+  let photoURL = '';
+  if(photoFile){
+    photoURL = await uploadImage(photoFile, currentUser.uid);
   }
 
-  await addDoc(collection(db,'users',user.uid,'students'),data);
-  $('student-form').reset();
-  $('preview-photo').classList.add('hidden');
-  await resetAndLoad();
+  await addDoc(
+    collection(db,'users',currentUser.uid,'students'),{
+      name, contact, fee, photoURL,
+      centerId, class:cls, guardian, notes,
+      isScholarship:isScholar,
+      createdAt: serverTimestamp()
+    });
 }
 
-/* ---------- paginação ---------- */
-function resetAndLoad(){
-  currentStart=null; pageStack=[]; loadPage('first');
-}
+/* ---------- lista de alunos ---------- */
+export async function loadStudents(currentUser, centersMap){
+  const list = $('student-list');
+  list.innerHTML = '<li>Carregando...</li>';
 
-async function loadPage(dir){
-  const UL=$('student-list'); UL.innerHTML='<li>Carregando…</li>';
+  const centerFilter = $('filter-center').value;
+  const scholarOnly  = $('filter-scholar').checked;
 
-  let q=query(collection(db,'users',user.uid,'students'),orderBy('name'));
-  const filter = role!=='admin' ? userCenterId : $('filter-center').value;
-  if(filter){ q=query(q, where('centerId','==',filter)); }
+  let q = query(collection(db,'users',currentUser.uid,'students'), orderBy('name'));
+  if(centerFilter) q = query(q, where('centerId','==',centerFilter));
+  if(scholarOnly)  q = query(q, where('isScholarship','==',true));
 
-  if(dir==='next' && currentStart){
-    pageStack.push(currentStart);
-    q=query(q, startAfter(currentStart), limit(PAGE_SIZE));
-  }else if(dir==='prev'){
-    currentStart=pageStack.pop()||null;
-    if(currentStart){ q=query(q, startAfter(currentStart), limit(PAGE_SIZE)); }
-    else            { q=query(q, limit(PAGE_SIZE)); }
-  }else{
-    q=query(q, limit(PAGE_SIZE));
-  }
-
-  const snap=await getDocs(q);
-
-  /* exibe lista */
-  UL.innerHTML='';
-  snap.forEach(doc=>{
-    const d=doc.data();
-    UL.insertAdjacentHTML('beforeend',
-      `<li class="bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer">
-         <span>${d.name}</span>
-         <span class="text-sm text-gray-500">${d.centerName}</span>
-       </li>`);
-    UL.lastElementChild.onclick=()=>openDetail(doc.id,d);
-  });
-
-  /* update estados */
-  hasNextPage = snap.size===PAGE_SIZE;
-  currentStart = snap.docs[snap.docs.length-1]||currentStart;
-
-  /* controles UI */
-  const controls=$('pagination-controls');
-  controls.classList.toggle('hidden', snap.empty);
-  $('btn-prev').disabled = pageStack.length===0;
-  $('btn-next').disabled = !hasNextPage;
-  $('page-info').textContent = `Página ${pageStack.length+1}${hasNextPage?'':' (final)'}`;
-}
-
-/* ---------- busca local ---------- */
-function filterList(){
-  const term=$('search-input').value.toLowerCase();
-  [...$('student-list').children].forEach(li=>{
-    const name=li.firstElementChild.textContent.toLowerCase();
-    li.style.display = name.includes(term) ? '' : 'none';
+  const snap = await getDocs(q);
+  list.innerHTML = '';
+  snap.forEach(docSnap=>{
+    const s = docSnap.data();
+    const li = document.createElement('li');
+    li.className = 'bg-white p-3 rounded shadow flex justify-between cursor-pointer';
+    li.innerHTML = `
+      <span>${s.name}${s.isScholarship?' <span class="text-xs text-violet-700 font-semibold">(Bolsista)</span>':''}</span>
+      <span class="text-sm text-gray-500">${centersMap.get(s.centerId)?.name||''}</span>
+    `;
+    li.addEventListener('click',()=>openStudent(docSnap.id,s,centersMap));
+    list.appendChild(li);
   });
 }
 
 /* ---------- detalhe ---------- */
-function openDetail(id,d){
-  $('detail-photo').src = d.photoURL||'https://via.placeholder.com/96?text=Foto';
-  $('detail-name').textContent = d.name;
-  $('detail-contact').textContent  = 'Contato: '+d.contact;
-  $('detail-class').textContent    = d.class ? 'Turma: '+d.class : '';
-  $('detail-guardian').textContent = d.guardian ? 'Responsável: '+d.guardian : '';
-  $('detail-fee').textContent      = 'Mensalidade: R$ '+d.fee.toFixed(2);
-  $('detail-notes').textContent    = d.notes || '';
-  $('detail-created').textContent  = d.createdAt?.seconds
-    ? 'Cadastrado em: '+new Date(d.createdAt.seconds*1000).toLocaleDateString()
-    : '';
-
-  listPayments(user,id);
-  $('btn-add-payment').onclick = ()=>addPayment(user,id,d.fee);
-
-  showStudentDetail();
+function openStudent(id,data,centersMap){
+  $('detail-name').textContent = data.name;
+  $('detail-contact').textContent  = 'Contato: '+data.contact;
+  $('detail-class').textContent    = data.class? 'Turma: '+data.class : '';
+  $('detail-guardian').textContent = data.guardian? 'Resp.: '+data.guardian : '';
+  $('detail-fee').textContent      = data.isScholarship ? 'Bolsista' : 'Mens.: '+formatMoney(data.fee);
+  $('detail-notes').textContent    = data.notes;
+  $('detail-photo').src            = data.photoURL || 'https://via.placeholder.com/96x96?text=Foto';
 }

@@ -1,33 +1,31 @@
+import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db } from './firebase.js';
-import { $ }  from './utils.js';
-import {
-  collection, getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 export async function loadTotals(user){
   const body = $('totals-body');
-  body.innerHTML='<tr><td class="p-2">Carregando...</td></tr>';
+  body.innerHTML = '<tr><td class="p-2">Carregando...</td></tr>';
 
-  const map = new Map();
-  const studentsSnap = await getDocs(collection(db,'users',user.uid,'students'));
-  for(const stu of studentsSnap.docs){
-    const fee = stu.data().fee;
-    const paySnap = await getDocs(collection(db,'users',user.uid,'students',stu.id,'payments'));
-    paySnap.forEach(p=>{
+  const students = await getDocs(collection(db,'users',user.uid,'students'));
+  const totals = new Map();
+
+  for(const st of students.docs){
+    const sData = st.data();
+    if(sData.isScholarship) continue;          // ignora bolsistas
+
+    const pays = await getDocs(collection(db,'users',user.uid,'students',st.id,'payments'));
+    pays.forEach(p=>{
       const {month,year}=p.data();
       const key=`${month.toString().padStart(2,'0')}/${year}`;
-      map.set(key,(map.get(key)||0)+fee);
+      totals.set(key,(totals.get(key)||0)+sData.fee);
     });
   }
 
   body.innerHTML='';
-  [...map.entries()].sort((a,b)=>{
+  [...totals.entries()].sort((a,b)=>{
     const [ma,ya]=a[0].split('/').map(Number);
     const [mb,yb]=b[0].split('/').map(Number);
     return yb-ya || mb-ma;
-  }).forEach(([key,total])=>{
-    body.insertAdjacentHTML('beforeend',
-      `<tr><td class="p-2 border-t">${key}</td><td class="p-2 border-t">R$ ${total.toFixed(2)}</td></tr>`);
+  }).forEach(([k,tot])=>{
+    body.insertAdjacentHTML('beforeend',`<tr><td class="p-2">${k}</td><td class="p-2">R$ ${tot.toFixed(2)}</td></tr>`);
   });
-  if(!body.children.length) body.innerHTML='<tr><td class="p-2">Sem dados.</td></tr>';
 }
