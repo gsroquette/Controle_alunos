@@ -58,15 +58,29 @@ function setupHomeNav() {
 
 /* ---------- show helper ---------- */
 function show(target){
-  const map = {
-    home:       'home-section',
-    students:   'dashboard-section',
-    totals:     'totals-section',
-    centers:    'centers-section',
-    defaulters: 'defaulters-section',
-    auth:       'auth-section'          // se algum dia precisar mostrar de novo
+  const map={
+    home:        'home-section',
+    students:    'dashboard-section',
+    addStudent:  'add-student-section',
+    totals:      'totals-section',
+    centers:     'centers-section',
+    defaulters:  'defaulters-section',
+    auth:        'auth-section'
   };
-  /* esconde todas, inclusive auth-section */
-  Object.values(map).forEach(id => $(id)?.classList.add('hidden'));
+  Object.values(map).forEach(id=>$(id)?.classList.add('hidden'));
   $(map[target])?.classList.remove('hidden');
 }
+
+/* --- dentro de setupHomeNav() --- */
+$('btn-nav-search').onclick   = ()=>show('students');
+$('btn-nav-add').onclick      = ()=>show('addStudent');
+/* ...resto igual... */
+
+/* --- botões voltar --- */
+[
+ ['back-home-students','home'],
+ ['back-home-add'    ,'home'],
+ ['back-home-totals' ,'home'],
+ ['back-home-centers','home'],
+ ['back-home-defaulters','home']
+].forEach(([id,tar])=>$(id).onclick=()=>show(tar));
