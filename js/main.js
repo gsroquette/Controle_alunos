@@ -26,7 +26,7 @@ initAuth(async (user) => {
   centersMap = await initCenters(user, curProfile);
 
   initStudents  (user, curProfile, centersMap);
-  initDefaulters(user, centersMap);   // ATENÇÃO: user e centersMap
+  initDefaulters(user, curProfile, centersMap);  
 
   setupHomeNav();
   show('home');
