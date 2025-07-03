@@ -60,7 +60,7 @@ function setupHomeNav() {
 function show(target) {
   const map = {
     home:       'home-section',
-    students:   'students-section',
+    students:   'dashboard-section',
     totals:     'totals-section',
     centers:    'centers-section',
     defaulters: 'defaulters-section'
