@@ -1,4 +1,4 @@
-// main.js  -----------------------------------------------------------
+// main.js -----------------------------------------------------------
 // ponto de entrada da aplicação SPA
 
 /* ------------ imports base ------------ */
@@ -12,18 +12,17 @@ import { initDefaulters } from './defaulters.js';
 import { loadTotals }     from './totals.js';
 
 /* ------------ utilidades --------------- */
-import { $ }              from './utils.js';
-import { signOut }
-  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { $ }       from './utils.js';
+import { signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 /* ================================================================== */
-/* 0. Estado compartilhado                                             */
+/* 0.  Estado compartilhado                                            */
 /* ================================================================== */
-let firebaseUser = null;         // Firebase User
-let userProfile  = null;         // { role, centerId, … }
-let centersMap   = new Map();    // Map<id,{name}>
+let firebaseUser = null;   // Firebase User
+let userProfile  = null;   // { role, centerId, … }
+let centersMap   = new Map();
 
-/* helper onclick */
+/* atalho para registrar onclicks */
 const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
 
 /* ================================================================== */
@@ -34,7 +33,7 @@ initAuth(async (user) => {
   userProfile  = await getUserProfile(user.uid);
 
   if (!userProfile?.role) {
-    console.error('main: perfil sem role – abortado.');
+    console.error('main: perfil sem role – abortando.');
     return;
   }
 
@@ -52,7 +51,7 @@ initAuth(async (user) => {
 /* ================================================================== */
 function setupHomeNav() {
   on('btn-nav-search'    , () => showSection('students'));
-  on('btn-nav-add'       , () => showSection('addStudent'));   // ← ALTERADO
+  on('btn-nav-add'       , () => showSection('addStudent'));
 
   on('btn-nav-totals'    , async () => {
     await loadTotals(firebaseUser);
@@ -62,6 +61,7 @@ function setupHomeNav() {
   on('btn-nav-defaulters', () => showSection('defaulters'));
   on('btn-nav-centers'   , () => showSection('centers'));
 
+  /* apenas admin vê “Cadastro de Centro” */
   if (userProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
@@ -74,21 +74,21 @@ function setupHomeNav() {
 /* ================================================================== */
 [
   ['back-home-students' , 'home'],
-  ['back-home-add'      , 'home'],  // ← botão da tela de cadastro
+  ['back-home-add'      , 'home'],
   ['back-home-totals'   , 'home'],
   ['back-home-centers'  , 'home'],
   ['back-home-defaulters','home']
-].forEach(([id, tgt]) => on(id, () => showSection(tgt)));
+].forEach(([id, target]) => on(id, () => showSection(target)));
 
 /* ================================================================== */
 /* 4. Router – mostra / esconde sections                               */
 /* ================================================================== */
-function showSection(target, openStudentForm = false) {
+function showSection(target) {
   const sectionId = {
     auth      : 'auth-section',
     home      : 'home-section',
     students  : 'dashboard-section',   // lista / pesquisa
-    addStudent: 'add-student-section', // formulário
+    addStudent: 'add-student-section', // formulário de cadastro
     totals    : 'totals-section',
     centers   : 'centers-section',
     defaulters: 'defaulters-section'
@@ -96,9 +96,4 @@ function showSection(target, openStudentForm = false) {
 
   Object.values(sectionId).forEach(id => $(id)?.classList.add('hidden'));
   $(sectionId[target])?.classList.remove('hidden');
-
-  /* se quisermos abrir <details> quando ficar na mesma página */
-  if (target === 'students' && openStudentForm) {
-    $('student-form-wrapper')?.setAttribute('open', '');
-  }
 }
