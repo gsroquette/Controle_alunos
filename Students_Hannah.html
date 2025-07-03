@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Controle de Mensalidades</title>
+  <!-- Tailwind (opcional, CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Ajustes rápidos de layout */
+    .hidden { display: none; }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
+  <h1 class="text-2xl font-bold mb-4">Controle de Mensalidades</h1>
+  <!-- ================= AUTH SECTION ================= -->
+  <div id="auth-section" class="w-full max-w-sm bg-white p-6 rounded-lg shadow">
+    <h2 class="text-xl font-semibold mb-4" id="auth-title">Login</h2>
+    <form id="auth-form" class="space-y-4">
+      <input id="email" type="email" placeholder="Email" required class="w-full p-2 border rounded" />
+      <input id="password" type="password" placeholder="Senha" required class="w-full p-2 border rounded" />
+      <button id="auth-btn" type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Entrar</button>
+    </form>
+    <p class="mt-4 text-center text-sm">
+      <span id="toggle-msg">Não tem conta?</span>
+      <button id="toggle-auth" class="text-blue-600 underline">Cadastre‑se</button>
+    </p>
+  </div>
+
+  <!-- ================= DASHBOARD SECTION ================= -->
+  <div id="dashboard-section" class="hidden w-full max-w-3xl">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-xl font-semibold">Alunos</h2>
+      <div>
+        <button id="btn-show-totals" class="bg-emerald-600 text-white px-3 py-1 rounded mr-2">Totais Mensais</button>
+        <button id="logout-btn" class="bg-red-600 text-white px-3 py-1 rounded">Sair</button>
+      </div>
+    </div>
+    <!-- Search -->
+    <input id="search-input" type="text" placeholder="Pesquisar aluno..." class="w-full p-2 border rounded mb-4" />
+    <!-- Student List -->
+    <ul id="student-list" class="space-y-2 mb-4"></ul>
+    <!-- Add Student -->
+    <details class="bg-white p-4 rounded shadow">
+      <summary class="cursor-pointer font-medium">+ Novo Aluno</summary>
+      <form id="student-form" class="mt-4 space-y-3">
+        <input id="student-name" type="text" placeholder="Nome" required class="w-full p-2 border rounded" />
+        <input id="student-contact" type="text" placeholder="Contato" required class="w-full p-2 border rounded" />
+        <input id="student-fee" type="number" placeholder="Valor da mensalidade" required class="w-full p-2 border rounded" />
+        <input id="student-photo" type="file" accept="image/*" class="w-full" />
+        <button type="submit" class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
+      </form>
+    </details>
+  </div>
+
+  <!-- ================= STUDENT DETAIL SECTION ================= -->
+  <div id="student-section" class="hidden w-full max-w-3xl">
+    <button id="back-dashboard" class="mb-4 text-blue-600 underline">← Voltar</button>
+    <div class="bg-white p-4 rounded shadow">
+      <div class="flex items-center space-x-4 mb-4">
+        <img id="detail-photo" src="" alt="Foto" class="w-24 h-24 rounded-full object-cover" />
+        <div>
+          <h2 id="detail-name" class="text-xl font-semibold"></h2>
+          <p id="detail-contact" class="text-sm text-gray-600"></p>
+          <p id="detail-fee" class="text-sm text-gray-600"></p>
+        </div>
+      </div>
+      <h3 class="font-medium mb-2">Pagamentos</h3>
+      <ul id="payments-list" class="space-y-1 mb-4"></ul>
+      <button id="btn-add-payment" class="bg-emerald-600 text-white w-full py-2 rounded">Registrar pagamento deste mês</button>
+    </div>
+  </div>
+
+  <!-- ================= TOTALS SECTION ================= -->
+  <div id="totals-section" class="hidden w-full max-w-2xl">
+    <button id="back-dashboard-2" class="mb-4 text-blue-600 underline">← Voltar</button>
+    <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
+    <table class="w-full bg-white rounded shadow">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2 text-left">Mês/Ano</th>
+          <th class="p-2 text-left">Total Recebido</th>
+        </tr>
+      </thead>
+      <tbody id="totals-body"></tbody>
+    </table>
+  </div>
+
+  <!-- ================= FIREBASE & APP LOGIC ================= -->
+  <script type="module">
+    // 1. Firebase Imports
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, doc, setDoc, getDoc, getDocs, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+    import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-storage.js";
+
+    // 2. Firebase Config (substitua pelos seus dados!)
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    // 3. Init Services
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    // 4. UI References
+    const authSection = document.getElementById('auth-section');
+    const dashboardSection = document.getElementById('dashboard-section');
+    const studentSection = document.getElementById('student-section');
+    const totalsSection = document.getElementById('totals-section');
+
+    // Auth elements
+    const authForm = document.getElementById('auth-form');
+    const authTitle = document.getElementById('auth-title');
+    const toggleAuth = document.getElementById('toggle-auth');
+    const toggleMsg = document.getElementById('toggle-msg');
+    const authBtn = document.getElementById('auth-btn');
+
+    // Dashboard
+    const studentList = document.getElementById('student-list');
+    const searchInput = document.getElementById('search-input');
+    const studentForm = document.getElementById('student-form');
+    const logoutBtn = document.getElementById('logout-btn');
+    const btnShowTotals = document.getElementById('btn-show-totals');
+
+    // Student Detail
+    const backDashboard = document.getElementById('back-dashboard');
+    const detailPhoto = document.getElementById('detail-photo');
+    const detailName = document.getElementById('detail-name');
+    const detailContact = document.getElementById('detail-contact');
+    const detailFee = document.getElementById('detail-fee');
+    const paymentsList = document.getElementById('payments-list');
+    const btnAddPayment = document.getElementById('btn-add-payment');
+
+    // Totals
+    const backDashboard2 = document.getElementById('back-dashboard-2');
+    const totalsBody = document.getElementById('totals-body');
+
+    let currentUser = null;
+    let selectedStudentId = null;
+
+    // ================= AUTH LOGIC =================
+    let isLogin = true;
+
+    toggleAuth.addEventListener('click', () => {
+      isLogin = !isLogin;
+      authTitle.textContent = isLogin ? 'Login' : 'Cadastro';
+      authBtn.textContent = isLogin ? 'Entrar' : 'Cadastrar';
+      toggleMsg.textContent = isLogin ? 'Não tem conta?' : 'Já tem conta?';
+      toggleAuth.textContent = isLogin ? 'Cadastre‑se' : 'Entrar';
+    });
+
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      try {
+        if (isLogin) {
+          await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          await createUserWithEmailAndPassword(auth, email, password);
+        }
+      } catch (err) {
+        alert(err.message);
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => signOut(auth));
+
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      if (user) {
+        showDashboard();
+        loadStudents();
+      } else {
+        showAuth();
+      }
+    });
+
+    function showAuth() {
+      authSection.classList.remove('hidden');
+      dashboardSection.classList.add('hidden');
+      studentSection.classList.add('hidden');
+      totalsSection.classList.add('hidden');
+    }
+
+    function showDashboard() {
+      authSection.classList.add('hidden');
+      dashboardSection.classList.remove('hidden');
+      studentSection.classList.add('hidden');
+      totalsSection.classList.add('hidden');
+    }
+
+    function showStudentDetail() {
+      dashboardSection.classList.add('hidden');
+      studentSection.classList.remove('hidden');
+      totalsSection.classList.add('hidden');
+    }
+
+    function showTotals() {
+      dashboardSection.classList.add('hidden');
+      totalsSection.classList.remove('hidden');
+      studentSection.classList.add('hidden');
+    }
+
+    // ================= STUDENTS =================
+    async function loadStudents() {
+      studentList.innerHTML = '<li>Carregando...</li>';
+      const q = query(collection(db, 'users', currentUser.uid, 'students'), orderBy('name'));
+      const snapshot = await getDocs(q);
+      studentList.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        const li = document.createElement('li');
+        li.className = 'bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer';
+        li.innerHTML = `
+          <span>${data.name}</span>
+          <span class="text-sm text-gray-500">${data.contact}</span>
+        `;
+        li.addEventListener('click', () => openStudent(docSnap.id, data));
+        studentList.appendChild(li);
+      });
+    }
+
+    studentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('student-name').value;
+      const contact = document.getElementById('student-contact').value;
+      const fee = parseFloat(document.getElementById('student-fee').value);
+      const photoFile = document.getElementById('student-photo').files[0];
+      let photoURL = '';
+      if (photoFile) {
+        const fileRef = storageRef(storage, `students/${currentUser.uid}/${Date.now()}_${photoFile.name}`);
+        await uploadBytes(fileRef, photoFile);
+        photoURL = await getDownloadURL(fileRef);
+      }
+      await addDoc(collection(db, 'users', currentUser.uid, 'students'), {
+        name, contact, fee, photoURL
+      });
+      studentForm.reset();
+      loadStudents();
+      alert('Aluno salvo!');
+    });
+
+    // ================= STUDENT DETAIL & PAYMENTS =================
+    async function openStudent(id, data) {
+      selectedStudentId = id;
+      detailPhoto.src = data.photoURL || 'https://via.placeholder.com/96x96?text=Foto';
+      detailName.textContent = data.name;
+      detailContact.textContent = `Contato: ${data.contact}`;
+      detailFee.textContent = `Mensalidade: R$ ${data.fee.toFixed(2)}`;
+      showStudentDetail();
+      await loadPayments();
+    }
+
+    backDashboard.addEventListener('click', () => {
+      selectedStudentId = null;
+      showDashboard();
+    });
+
+    async function loadPayments() {
+      paymentsList.innerHTML = '<li>Carregando...</li>';
+      const paymentsCol = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
+      const snapshot = await getDocs(orderByMonthYear(paymentsCol));
+      paymentsList.innerHTML = '';
+      snapshot.forEach(docSnap => {
+        const { month, year, timestamp } = docSnap.data();
+        const li = document.createElement('li');
+        li.textContent = `${month}/${year} – recebido em ${new Date(timestamp.seconds * 1000).toLocaleString()}`;
+        paymentsList.appendChild(li);
+      });
+    }
+
+    // Helper para ordenar por ano/mês
+    function orderByMonthYear(colRef) {
+      return query(colRef, orderBy('year', 'desc'), orderBy('month', 'desc'));
+    }
+
+    btnAddPayment.addEventListener('click', async () => {
+      const now = new Date();
+      const month = now.getMonth() + 1; // 1‑12
+      const year = now.getFullYear();
+      const paymentsCol = collection(db, 'users', currentUser.uid, 'students', selectedStudentId, 'payments');
+      // Verifica se já há pagamento deste mês
+      const q = query(paymentsCol, where('month', '==', month), where('year', '==', year));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        alert('Pagamento deste mês já registrado.');
+        return;
+      }
+      await addDoc(paymentsCol, {
+        month,
+        year,
+        timestamp: serverTimestamp(),
+        recordedBy: currentUser.uid
+      });
+      loadPayments();
+      alert('Pagamento registrado!');
+    });
+
+    // ================= TOTALS =================
+    btnShowTotals.addEventListener('click', async () => {
+      await loadTotals();
+      showTotals();
+    });
+
+    backDashboard2.addEventListener('click', () => showDashboard());
+
+    async function loadTotals() {
+      totalsBody.innerHTML = '<tr><td class="p-2">Carregando...</td></tr>';
+      const studentsCol = collection(db, 'users', currentUser.uid, 'students');
+      const studentsSnap = await getDocs(studentsCol);
+      const totalsMap = new Map(); // key "month/year" -> total
+      for (const studentDoc of studentsSnap.docs) {
+        const paymentsSnap = await getDocs(collection(db, 'users', currentUser.uid, 'students', studentDoc.id, 'payments'));
+        const fee = studentDoc.data().fee;
+        paymentsSnap.forEach(payDoc => {
+          const { month, year } = payDoc.data();
+          const key = `${month.toString().padStart(2, '0')}/${year}`;
+          const current = totalsMap.get(key) || 0;
+          totalsMap.set(key, current + fee);
+        });
+      }
+      totalsBody.innerHTML = '';
+      // Ordena por ano/mês desc
+      [...totalsMap.entries()].sort((a, b) => {
+        const [ma, ya] = a[0].split('/').map(Number);
+        const [mb, yb] = b[0].split('/').map(Number);
+        return yb - ya || mb - ma;
+      }).forEach(([key, total]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="p-2 border-t">${key}</td><td class="p-2 border-t">R$ ${total.toFixed(2)}</td>`;
+        totalsBody.appendChild(tr);
+      });
+      if (totalsBody.innerHTML === '') totalsBody.innerHTML = '<tr><td class="p-2">Nenhum pagamento registrado.</td></tr>';
+    }
+
+    // ================= SEARCH =================
+    searchInput.addEventListener('input', () => {
+      const term = searchInput.value.toLowerCase();
+      [...studentList.children].forEach(li => {
+        const name = li.firstElementChild.textContent.toLowerCase();
+        li.style.display = name.includes(term) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
