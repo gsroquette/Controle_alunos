@@ -1,57 +1,57 @@
-/* ------------- imports ------------- */
+/* ---------------- imports ---------------- */
 import {
   collection, query, where, orderBy, limit, startAfter,
   getDocs, addDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import { db } from './firebase.js';
-import { $, uploadImage } from './utils.js';
-import { showStudentDetail } from './ui.js';   // <- nome correto
+import { db }                 from './firebase.js';
+import { $, uploadImage }     from './utils.js';
+import { showStudentDetail }  from './ui.js';      // ✅ nome correto
 
-/* paginação */
+/* ---------------- estado ------------------ */
 const PAGE = 20;
-let lastDoc   = null;
-let reachedEnd= false;
+let lastDoc    = null;
+let reachedEnd = false;
 let currentUser;
-let centersMap;
+let centersMap;               // Map<id,{name,...}>
 
-/* ------------------------------------------------------------------ */
-/* INIT                                                                */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------ */
+/* 1. INIT  — chamado por main.js                               */
+/* ------------------------------------------------------------ */
 export function initStudents(user, profile, cMap) {
 
+  /* garante que seja sempre Map */
   centersMap  = (cMap instanceof Map) ? cMap
-             : new Map(Object.entries(cMap));
+                                      : new Map(Object.entries(cMap));
   currentUser = user;
 
-  /* selects de centro */
+  /* ------- popula selects de Centro ------- */
   const selFilter = $('filter-center');
   const selForm   = $('student-center');
-  selFilter.innerHTML =
-    '<option value="">Todos os Centros</option>';
+  selFilter.innerHTML = '<option value="">Todos os Centros</option>';
 
   centersMap.forEach((c, id) => {
     selFilter.appendChild(new Option(c.name, id));
     selForm  .appendChild(new Option(c.name, id));
   });
 
+  /* secretaria enxerga apenas o seu Centro */
   if (profile.role === 'secretaria') {
     selFilter.value    = profile.centerId;
     selFilter.disabled = true;
-    selForm.value      = profile.centerId;
-    selForm.disabled   = true;
+    selForm  .value    = profile.centerId;
+    selForm  .disabled = true;
   }
 
-  /* filtros */
-  $('search-input').oninput    = () => refresh(true);
-  selFilter.onchange           = () => refresh(true);
-  $('filter-scholar').onchange = () => refresh(true);
+  /* ------------ listeners ------------- */
+  $('search-input').oninput      = () => refresh(true);
+  selFilter.onchange             = () => refresh(true);
+  $('filter-scholar').onchange   = () => refresh(true);
 
-  /* paginação */
   $('btn-prev').onclick = () => pagePrev();
   $('btn-next').onclick = () => pageNext();
 
-  /* form aluno */
+  /* --- form aluno --- */
   const chkScholar = $('student-scholar');
   const feeInput   = $('student-fee');
   chkScholar.onchange = () => {
@@ -85,9 +85,9 @@ export function initStudents(user, profile, cMap) {
   refresh(true);
 }
 
-/* ------------------------------------------------------------------ */
-/* SALVAR ALUNO                                                        */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------ */
+/* 2. SALVAR ALUNO                                              */
+/* ------------------------------------------------------------ */
 async function saveStudent() {
   const name      = $('student-name').value.trim();
   const contact   = $('student-contact').value.trim();
@@ -99,12 +99,13 @@ async function saveStudent() {
   const notes     = $('student-notes').value.trim();
   const isScholar = $('student-scholar').checked;
   const photoFile = $('student-photo').files[0];
-  let photoURL = '';
 
+  let photoURL = '';
   if (photoFile) photoURL = await uploadImage(photoFile, currentUser.uid);
 
   await addDoc(
-    collection(db, 'users', currentUser.uid, 'students'), {
+    collection(db, 'users', currentUser.uid, 'students'),
+    {
       name, contact, centerId, fee,
       class: cls, guardian, notes,
       isScholarship: isScholar,
@@ -114,21 +115,21 @@ async function saveStudent() {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* LISTAGEM + PAGINAÇÃO                                                */
-/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------ */
+/* 3. LISTAGEM + PAGINAÇÃO                                      */
+/* ------------------------------------------------------------ */
 function buildQuery() {
-  const cen   = $('filter-center').value;
-  const schol = $('filter-scholar').checked;
+  const center = $('filter-center').value;
 
+  /* só filtramos por centro no Firestore.
+     (Filtro de bolsista é feito no cliente para não exigir índice) */
   let q = query(
     collection(db, 'users', currentUser.uid, 'students'),
     orderBy('name'),
     limit(PAGE)
   );
 
-  if (cen)   q = query(q, where('centerId',      '==', cen));
-  if (schol) q = query(q, where('isScholarship', '==', true));
+  if (center) q = query(q, where('centerId', '==', center));
   if (lastDoc) q = query(q, startAfter(lastDoc));
 
   return q;
@@ -136,8 +137,8 @@ function buildQuery() {
 
 async function refresh(reset = false) {
   if (reset) {
-    lastDoc     = null;
-    reachedEnd  = false;
+    lastDoc    = null;
+    reachedEnd = false;
     $('btn-prev').disabled = true;
   }
   if (reachedEnd) return;
@@ -149,26 +150,31 @@ async function refresh(reset = false) {
 }
 
 function renderList(docs, reset) {
-  const term = $('search-input').value.trim().toLowerCase();
-  const list = $('student-list');
+  const term   = $('search-input').value.trim().toLowerCase();
+  const onlyScholar = $('filter-scholar').checked;
+  const list   = $('student-list');
   if (reset) list.innerHTML = '';
 
   docs.forEach(doc => {
     const s = doc.data();
+
+    /* filtros extras no cliente */
+    if (onlyScholar && !s.isScholarship) return;
     if (term && !s.name.toLowerCase().includes(term)) return;
 
     const li = document.createElement('li');
     li.className =
       'bg-white p-3 rounded shadow flex justify-between cursor-pointer';
     li.innerHTML = `
-      <span>${s.name}${s.isScholarship
-        ? '<span class="text-xs text-violet-700 font-semibold"> (Bolsista)</span>'
-        : ''}</span>
+      <span>
+        ${s.name}
+        ${s.isScholarship ? '<span class="text-xs text-violet-700 font-semibold"> (Bolsista)</span>' : ''}
+      </span>
       <span class="text-sm text-gray-500">
         ${centersMap.get(s.centerId)?.name || ''}
       </span>`;
 
-    li.onclick = () => showStudentDetail(doc.id, s);   // <- uso correto
+    li.onclick = () => showStudentDetail(doc.id, s);
     list.appendChild(li);
   });
 
