@@ -1,17 +1,24 @@
-/* students.js */
+/* students.js – agora com paginação (20 por página) */
 import { db } from './firebase.js';
 import { $, } from './utils.js';
 import {
   collection, addDoc, getDocs,
-  query, orderBy, where, serverTimestamp
+  query, orderBy, where, startAfter, limit, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { showStudentDetail, showDashboard } from './ui.js';
 import { listPayments, addPayment } from './payments.js';
 
 /* Cloudinary */
 const CLOUD='dqa8jupnh', PRESET='unsigned';
+const PAGE_SIZE = 20;
 
 let user=null, role='admin', userCenterId='', centersMap={};
+
+/* ---------- paginação state ---------- */
+let currentStart = null;      // DocumentSnapshot ou null (primeira página)
+let pageStack    = [];        // pilha de páginas anteriores
+let hasNextPage  = false;     // se existe página seguinte
+let currentQueryCenter='';    // para detectar mudança de filtro
 
 /* ---------- INIT ---------- */
 export async function initStudents(u, profile, cMap){
@@ -23,20 +30,23 @@ export async function initStudents(u, profile, cMap){
   $('student-form').addEventListener('submit', saveStudent);
   $('student-photo').addEventListener('change', preview);
   $('search-input').addEventListener('input', filterList);
-  $('filter-center').addEventListener('change', loadStudents);
+  $('filter-center').addEventListener('change', ()=>resetAndLoad());
   $('back-dashboard').addEventListener('click', ()=>showDashboard());
 
-  await loadStudents();
+  $('btn-prev').addEventListener('click', ()=>loadPage('prev'));
+  $('btn-next').addEventListener('click', ()=>loadPage('next'));
+
+  await resetAndLoad();  // primeira página
 }
 
-/* preview */
+/* ---------- preview foto ---------- */
 function preview(){
   const f=$('student-photo').files[0], img=$('preview-photo');
   f ? (img.src=URL.createObjectURL(f),img.classList.remove('hidden'))
     : img.classList.add('hidden');
 }
 
-/* salvar */
+/* ---------- salvar aluno ---------- */
 async function saveStudent(e){
   e.preventDefault();
 
@@ -72,44 +82,86 @@ async function saveStudent(e){
     $('upload-spinner').classList.add('hidden');
   }
 
-  /* salva */
   await addDoc(collection(db,'users',user.uid,'students'),data);
   $('student-form').reset();
   $('preview-photo').classList.add('hidden');
-  await loadStudents();
+  await resetAndLoad();           // recarrega da primeira página
 }
 
-/* lista */
-async function loadStudents(){
-  const UL=$('student-list'); UL.innerHTML='<li>Carregando…</li>';
+/* ---------- paginação helpers ---------- */
+function resetAndLoad(){          // chamado quando filtro muda
+  currentStart = null;
+  pageStack    = [];
+  loadPage('first');
+}
 
+async function loadPage(dir){
+  const UL = $('student-list');
+  UL.innerHTML = '<li>Carregando…</li>';
+
+  /* base query */
   let q=query(collection(db,'users',user.uid,'students'),orderBy('name'));
-  const sel=$('filter-center').value;
-  if(role!=='admin'){
-    q=query(q, where('centerId','==',userCenterId));
-  }else if(sel){ q=query(q, where('centerId','==',sel)); }
 
-  const snap=await getDocs(q);
+  const filter = role!=='admin' ? userCenterId : $('filter-center').value;
+  currentQueryCenter = filter;
+
+  if(filter){
+    q=query(q, where('centerId','==',filter));
+  }
+
+  if(dir==='next' && currentStart){
+    pageStack.push(currentStart);
+    q=query(q, startAfter(currentStart), limit(PAGE_SIZE));
+  }else if(dir==='prev'){
+    currentStart = pageStack.pop() || null;
+    // recálculo: para prev, pegamos o snapshot logo após o anterior da pilha
+    if(currentStart){
+      q=query(q, startAfter(currentStart), limit(PAGE_SIZE));
+    }else{
+      q=query(q, limit(PAGE_SIZE));
+    }
+  }else{ // first
+    q=query(q, limit(PAGE_SIZE));
+  }
+
+  const snap = await getDocs(q);
+
+  /* monta lista */
   UL.innerHTML='';
   snap.forEach(doc=>{
     const d=doc.data();
     const li=document.createElement('li');
     li.className='bg-white p-3 rounded shadow flex justify-between items-center cursor-pointer';
     li.innerHTML=`<span>${d.name}</span><span class="text-sm text-gray-500">${d.centerName}</span>`;
-    li.onclick=()=>openDetail(doc.id,d);
+    li.onclick = ()=>openDetail(doc.id,d);
     UL.appendChild(li);
   });
+
+  /* atualiza estado */
+  hasNextPage = snap.size === PAGE_SIZE;
+  currentStart = snap.docs[snap.docs.length-1] || currentStart;
+
+  /* controles UI */
+  const controls=$('pagination-controls');
+  controls.classList.toggle('hidden', snap.empty);
+  $('btn-prev').disabled = pageStack.length===0;
+  $('btn-next').disabled = !hasNextPage;
+
+  const pageNum = pageStack.length + 1;
+  $('page-info').textContent = `Página ${pageNum}${hasNextPage?'':' (final)'}`;
 }
 
+/* ---------- busca em tempo real (nome) dentro da página ---------- */
 function filterList(){
-  const term=$('search-input').value.toLowerCase();
+  const term = $('search-input').value.toLowerCase();
   [...$('student-list').children].forEach(li=>{
-    const name=li.firstElementChild.textContent.toLowerCase();
-    li.style.display=name.includes(term)?'':'none';
+    const name = li.firstElementChild.textContent.toLowerCase();
+    li.style.display = name.includes(term) ? '' : 'none';
   });
 }
 
-/* detalhe */
+/* ---------- detalhe ---------- */
+import { showStudentDetail } from './ui.js';
 function openDetail(id,d){
   $('detail-photo').src = d.photoURL||'https://via.placeholder.com/96?text=Foto';
   $('detail-name').textContent     = d.name;
@@ -118,7 +170,7 @@ function openDetail(id,d){
   $('detail-guardian').textContent = d.guardian ? 'Responsável: '+d.guardian : '';
   $('detail-fee').textContent      = 'Mensalidade: R$ '+d.fee.toFixed(2);
   $('detail-notes').textContent    = d.notes || '';
-  $('detail-created').textContent  = d.createdAt && d.createdAt.seconds
+  $('detail-created').textContent  = d.createdAt?.seconds
     ? 'Cadastrado em: '+new Date(d.createdAt.seconds*1000).toLocaleDateString()
     : '';
 
