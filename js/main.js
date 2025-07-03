@@ -1,3 +1,5 @@
+// main.js
+
 import { initAuth }       from './auth.js';
 import { getUserProfile } from './profile.js';
 
@@ -13,42 +15,61 @@ let curUser     = null;
 let curProfile  = null;
 let centersMap  = new Map();
 
+/* ------------------------------------------------- */
+/* INICIALIZA APÓS LOGIN                             */
+/* ------------------------------------------------- */
 initAuth(async (user) => {
-  curUser    = user;
+  curUser = user;
   curProfile = await getUserProfile(user.uid);
 
-  // 🔧 Garante que perfil tem centro (se não for admin)
+  // 🔒 Garante que o perfil está correto
+  if (!curProfile || !curProfile.role) {
+    console.error('Erro: perfil do usuário inválido.');
+    return;
+  }
+
+  // 🔧 Se não for admin, atribui dados do centro no usuário
   if (curProfile.role !== 'admin') {
     curUser.centerId   = curProfile.centerId;
     curUser.centerName = curProfile.centerName || 'Centro Local';
   }
 
-  centersMap = await initCenters(user, curProfile);
+  // ⏳ Carrega centros antes de usar em módulos
+  centersMap = await initCenters(curUser, curProfile);
 
-  initStudents  (user, curProfile, centersMap);
-  initDefaulters(user, curProfile, centersMap);  
+  // ✅ Inicializa os módulos que usam os dados carregados
+  initStudents  (curUser, curProfile, centersMap);
+  initDefaulters(curUser, curProfile, centersMap);
 
+  // 🧭 Configura navegação e mostra tela inicial
   setupHomeNav();
   show('home');
 });
 
+/* ------------------------------------------------- */
+/* BOTÕES DA TELA HOME                               */
+/* ------------------------------------------------- */
 function setupHomeNav () {
-  $('btn-nav-search').onclick    = () => show('students');
-  $('btn-nav-add').onclick       = () => show('students', true);
-  $('btn-nav-totals').onclick    = async () => {
+  $('btn-nav-search'    )?.onclick = () => show('students');
+  $('btn-nav-add'       )?.onclick = () => show('students', true);
+  $('btn-nav-totals'    )?.onclick = async () => {
     await loadTotals(curUser);
     show('totals');
   };
-  $('btn-nav-defaulters').onclick = () => show('defaulters');
-  $('btn-nav-centers').onclick    = () => show('centers');
+  $('btn-nav-defaulters')?.onclick = () => show('defaulters');
+  $('btn-nav-centers'   )?.onclick = () => show('centers');
 
+  // 🔒 Apenas admins podem acessar cadastro de centros
   if (curProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
 
-  $('logout-btn').onclick = () => signOut();
+  $('logout-btn')?.onclick = () => signOut();
 }
 
+/* ------------------------------------------------- */
+/* BOTÕES “Voltar”                                   */
+/* ------------------------------------------------- */
 [
   ['back-home-students',   'home'],
   ['back-home-totals',     'home'],
@@ -59,6 +80,9 @@ function setupHomeNav () {
   if (el) el.onclick = () => show(target);
 });
 
+/* ------------------------------------------------- */
+/* SHOW – Navegação entre seções                     */
+/* ------------------------------------------------- */
 function show(target, openForm = false) {
   const map = {
     auth:        'auth-section',
@@ -69,9 +93,13 @@ function show(target, openForm = false) {
     defaulters:  'defaulters-section'
   };
 
+  // esconde tudo
   Object.values(map).forEach(id => $(id)?.classList.add('hidden'));
+
+  // mostra a seção desejada
   $(map[target])?.classList.remove('hidden');
 
+  // se abriu para adicionar aluno
   if (target === 'students' && openForm) {
     $('student-form-wrapper')?.setAttribute('open', '');
   }
