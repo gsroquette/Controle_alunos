@@ -30,7 +30,8 @@ export async function initStudents(u, profile, cMap){
   $('student-photo').addEventListener('change', preview);
   $('search-input').addEventListener('input', filterList);
   $('filter-center').addEventListener('change', resetAndLoad);
-  $('back-dashboard').addEventListener('click', ()=>showDashboard());
+  + // Botão voltar ao início (id novo)
+  + $('back-home-students').addEventListener('click', ()=>show('home'));
 
   $('btn-prev').addEventListener('click', ()=>loadPage('prev'));
   $('btn-next').addEventListener('click', ()=>loadPage('next'));
