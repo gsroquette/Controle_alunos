@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Controle de Mensalidades</title>
 
-  <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>.hidden{display:none}</style>
 </head>
@@ -17,12 +16,9 @@
     <h2 id="auth-title" class="text-xl font-semibold mb-4">Login</h2>
 
     <form id="auth-form" class="space-y-4">
-      <input id="email" type="email" placeholder="Email"
-             class="w-full p-2 border rounded" required />
-      <input id="password" type="password" placeholder="Senha"
-             class="w-full p-2 border rounded" required />
-      <button id="auth-btn"
-              class="w-full bg-blue-600 text-white py-2 rounded">Entrar</button>
+      <input id="email"     class="w-full p-2 border rounded" type="email"    placeholder="Email" required />
+      <input id="password"  class="w-full p-2 border rounded" type="password" placeholder="Senha" required />
+      <button id="auth-btn" class="w-full bg-blue-600 text-white py-2 rounded">Entrar</button>
     </form>
 
     <p class="mt-4 text-center text-sm">
@@ -31,7 +27,39 @@
     </p>
   </div>
 
-  <!-- ============ DASHBOARD ============ -->
+  <!-- ============ HOME (após login) ============ -->
+  <div id="home-section" class="hidden w-full max-w-2xl">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <button id="btn-nav-search"
+              class="bg-blue-600 text-white rounded p-6 text-lg font-semibold shadow">
+        Pesquisar Aluno
+      </button>
+
+      <button id="btn-nav-add"
+              class="bg-green-600 text-white rounded p-6 text-lg font-semibold shadow">
+        Adicionar Aluno
+      </button>
+
+      <button id="btn-nav-totals"
+              class="bg-emerald-600 text-white rounded p-6 text-lg font-semibold shadow">
+        Totais Mensais
+      </button>
+
+      <button id="btn-nav-defaulters"
+              class="bg-orange-500 text-white rounded p-6 text-lg font-semibold shadow">
+        Inadimplentes
+      </button>
+
+    </div>
+
+    <button id="btn-nav-logout"
+            class="mt-6 bg-red-600 text-white px-4 py-2 rounded shadow">
+      Sair
+    </button>
+  </div>
+
+  <!-- ============ DASHBOARD (lista + formulários) ============ -->
   <div id="dashboard-section" class="hidden w-full max-w-3xl">
 
     <!-- Barra topo -->
@@ -43,10 +71,10 @@
           Totais Mensais
         </button>
 
-<button id="btn-show-defaulters"
-        class="bg-orange-500 text-white px-3 py-1 rounded">
-  Inadimplentes
-</button>
+        <button id="btn-show-defaulters"
+                class="bg-orange-500 text-white px-3 py-1 rounded">
+          Inadimplentes
+        </button>
 
         <button id="logout-btn"
                 class="bg-red-600 text-white px-3 py-1 rounded">
@@ -56,44 +84,31 @@
     </div>
 
     <!-- ========= FORMULÁRIO CENTRO (admin) ========= -->
-    <details id="center-wrapper"
-             class="bg-white p-4 rounded shadow mb-4">
+    <details id="center-wrapper" class="bg-white p-4 rounded shadow mb-4">
       <summary class="cursor-pointer font-medium">+ Novo Centro</summary>
       <form id="center-form" class="mt-4 space-y-3 max-w-md">
-        <input id="center-name"    class="w-full p-2 border rounded"
-               placeholder="Nome do Centro"      required />
-        <input id="center-address" class="w-full p-2 border rounded"
-               placeholder="Endereço completo"   required />
-        <input id="center-manager" class="w-full p-2 border rounded"
-               placeholder="Responsável"         required />
-        <button
-          class="bg-indigo-600 text-white w-full py-2 rounded">
-          Salvar Centro
-        </button>
+        <input id="center-name"    class="w-full p-2 border rounded" placeholder="Nome do Centro"    required />
+        <input id="center-address" class="w-full p-2 border rounded" placeholder="Endereço completo" required />
+        <input id="center-manager" class="w-full p-2 border rounded" placeholder="Responsável"       required />
+        <button class="bg-indigo-600 text-white w-full py-2 rounded">Salvar Centro</button>
       </form>
     </details>
 
-    <!-- ========= FORMULÁRIO NOVO USUÁRIO (admin) ========= -->
-    <details id="user-wrapper"
-             class="bg-white p-4 rounded shadow mb-4">
+    <!-- ========= FORMULÁRIO USUÁRIO (admin) ========= -->
+    <details id="user-wrapper" class="bg-white p-4 rounded shadow mb-4">
       <summary class="cursor-pointer font-medium">+ Novo Usuário</summary>
       <form id="user-form" class="mt-4 space-y-3 max-w-md">
-        <input id="newuser-email" class="w-full p-2 border rounded"
-               placeholder="E-mail" type="email" required />
-        <input id="newuser-pass"  class="w-full p-2 border rounded"
-               placeholder="Senha" type="password" required minlength="6" />
-
+        <input id="newuser-email" class="w-full p-2 border rounded" type="email"    placeholder="E-mail" required />
+        <input id="newuser-pass"  class="w-full p-2 border rounded" type="password" placeholder="Senha"  required minlength="6" />
         <select id="newuser-role" class="w-full p-2 border rounded" required>
           <option value="admin">Administrador</option>
           <option value="secretaria">Secretaria</option>
         </select>
-
         <div id="wrapper-center-select" class="hidden">
           <select id="newuser-center" class="w-full p-2 border rounded">
             <option value="" disabled selected>Selecione o Centro</option>
           </select>
         </div>
-
         <button id="btn-save-user"
                 class="bg-teal-600 text-white w-full py-2 rounded">
           Salvar Usuário
@@ -113,19 +128,19 @@
     <!-- Lista -->
     <ul id="student-list" class="space-y-2 mb-4"></ul>
 
-<!-- CONTROLES PAGINAÇÃO -->
-<div id="pagination-controls"
-     class="hidden flex justify-between items-center mt-2">
-  <button id="btn-prev"
-          class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">
-    ← Anterior
-  </button>
-  <span id="page-info" class="text-sm"></span>
-  <button id="btn-next"
-          class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">
-    Próximo →
-  </button>
-</div>
+    <!-- Paginação -->
+    <div id="pagination-controls"
+         class="hidden flex justify-between items-center mt-2">
+      <button id="btn-prev"
+              class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">
+        ← Anterior
+      </button>
+      <span id="page-info" class="text-sm"></span>
+      <button id="btn-next"
+              class="bg-gray-200 px-3 py-1 rounded disabled:opacity-50">
+        Próximo →
+      </button>
+    </div>
 
     <!-- ========= FORMULÁRIO ALUNO ========= -->
     <details class="bg-white p-4 rounded shadow">
@@ -136,28 +151,20 @@
           <option value="" disabled selected>Selecione o Centro</option>
         </select>
 
-        <input id="student-name"    class="w-full p-2 border rounded"
-               placeholder="Nome" required />
-        <input id="student-contact" class="w-full p-2 border rounded"
-               placeholder="Contato" required />
-        <input id="student-class"   class="w-full p-2 border rounded"
-               placeholder="Turma" />
-        <input id="student-guardian"class="w-full p-2 border rounded"
-               placeholder="Responsável" />
-        <textarea id="student-notes" rows="3"
-                  class="w-full p-2 border rounded resize-y"
+        <input id="student-name"    class="w-full p-2 border rounded" placeholder="Nome" required />
+        <input id="student-contact" class="w-full p-2 border rounded" placeholder="Contato" required />
+        <input id="student-class"   class="w-full p-2 border rounded" placeholder="Turma" />
+        <input id="student-guardian"class="w-full p-2 border rounded" placeholder="Responsável" />
+        <textarea id="student-notes" rows="3" class="w-full p-2 border rounded resize-y"
                   placeholder="Observações"></textarea>
-        <input id="student-fee"     type="number"
-               class="w-full p-2 border rounded"
+        <input id="student-fee" type="number" class="w-full p-2 border rounded"
                placeholder="Valor mensalidade" required />
 
-        <input id="student-photo"   type="file" accept="image/*"
-               class="w-full" />
-        <img  id="preview-photo"
-              class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
+        <input id="student-photo" type="file" accept="image/*" class="w-full" />
+        <img id="preview-photo"
+             class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
         <div id="upload-spinner" class="hidden flex justify-center">
-          <svg class="animate-spin h-6 w-6 text-blue-600"
-               viewBox="0 0 24 24" fill="none">
+          <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
             <circle class="opacity-25" cx="12" cy="12" r="10"
                     stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor"
@@ -165,9 +172,7 @@
           </svg>
         </div>
 
-        <button class="bg-blue-600 text-white w-full py-2 rounded">
-          Salvar
-        </button>
+        <button class="bg-blue-600 text-white w-full py-2 rounded">Salvar</button>
       </form>
     </details>
   </div>
@@ -176,11 +181,9 @@
   <div id="student-section" class="hidden w-full max-w-3xl">
     <button id="back-dashboard"
             class="mb-4 text-blue-600 underline">← Voltar</button>
-
     <div class="bg-white p-4 rounded shadow">
       <div class="flex items-center space-x-4 mb-4">
-        <img id="detail-photo"
-             class="w-24 h-24 rounded-full object-cover" />
+        <img id="detail-photo" class="w-24 h-24 rounded-full object-cover" />
         <div>
           <h2 id="detail-name" class="text-xl font-semibold"></h2>
           <p id="detail-contact"  class="text-sm text-gray-600"></p>
@@ -190,10 +193,7 @@
           <p id="detail-created"  class="text-sm text-gray-500"></p>
         </div>
       </div>
-
-      <p id="detail-notes"
-         class="text-sm italic text-gray-700 mb-2"></p>
-
+      <p id="detail-notes" class="text-sm italic text-gray-700 mb-2"></p>
       <h3 class="font-medium mb-2">Pagamentos</h3>
       <ul id="payments-list" class="space-y-1 mb-4"></ul>
       <button id="btn-add-payment"
@@ -217,35 +217,31 @@
     </table>
   </div>
 
-<!-- ============ DEFAULTERS ============ -->
-<div id="defaulters-section" class="hidden w-full max-w-2xl">
-  <button id="back-dashboard-3"
-          class="mb-4 text-blue-600 underline">← Voltar</button>
-
-  <h2 class="text-xl font-semibold mb-4">Inadimplentes</h2>
-
-  <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
-    <input id="defaulters-month" type="month"
-           class="p-2 border rounded" />
-    <select id="defaulters-center" class="p-2 border rounded">
-      <option value="">Todos os Centros</option>
-    </select>
-    <button id="btn-load-defaulters"
-            class="bg-orange-500 text-white px-4 py-2 rounded">
-      Buscar
-    </button>
+  <!-- ============ DEFAULTERS ============ -->
+  <div id="defaulters-section" class="hidden w-full max-w-2xl">
+    <button id="back-dashboard-3"
+            class="mb-4 text-blue-600 underline">← Voltar</button>
+    <h2 class="text-xl font-semibold mb-4">Inadimplentes</h2>
+    <div class="flex flex-col md:flex-row md:items-center md:space-x-4 mb-4">
+      <input id="defaulters-month" type="month" class="p-2 border rounded" />
+      <select id="defaulters-center" class="p-2 border rounded">
+        <option value="">Todos os Centros</option>
+      </select>
+      <button id="btn-load-defaulters"
+              class="bg-orange-500 text-white px-4 py-2 rounded">
+        Buscar
+      </button>
+    </div>
+    <table class="w-full bg-white rounded shadow">
+      <thead class="bg-gray-200">
+        <tr><th class="p-2 text-left">Aluno</th>
+            <th class="p-2 text-left">Centro</th></tr>
+      </thead>
+      <tbody id="defaulters-body"></tbody>
+    </table>
   </div>
 
-  <table class="w-full bg-white rounded shadow">
-    <thead class="bg-gray-200">
-      <tr><th class="p-2 text-left">Aluno</th>
-          <th class="p-2 text-left">Centro</th></tr>
-    </thead>
-    <tbody id="defaulters-body"></tbody>
-  </table>
-</div>
-
-  <!-- ponto de entrada -->
+  <!-- entrada -->
   <script type="module" src="./js/main.js"></script>
 </body>
 </html>
