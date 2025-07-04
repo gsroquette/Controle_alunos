@@ -45,7 +45,7 @@ initAuth(async (user) => {
 
   /* 1-C. inicia módulos dependentes ------------------------------- */
   initStudents  (firebaseUser, userProfile, centersMap);
-  initDefaulters(firebaseUser, userProfile, centersMap);
+  initDefaulters(userProfile, centersMap);
 
   /* 1-D. interface ------------------------------------------------ */
   setupHomeNav();
@@ -64,7 +64,7 @@ function setupHomeNav() {
   on('btn-nav-centers'    , () => showSection('centers'));
 
   on('btn-nav-totals', async () => {
-    await loadTotals(firebaseUser, userProfile);
+    await loadTotals(userProfile);
     showSection('totals');
   });
 
