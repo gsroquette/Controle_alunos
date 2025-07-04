@@ -1,14 +1,15 @@
 /* students.js ------------------------------------------------------
  *  Lista, cadastro e edição de alunos + integração com pagamentos
- *  — garante:
- *    • Admin vê todos os alunos (collectionGroup).
- *    • Secretária vê/grava apenas o próprio centro.
- *    • Cada aluno grava ownerUid → qualquer cargo registra pagamentos.
- * --------------------------------------------------------------- */
+ *  Estrutura centralizada (coleções raiz):
+ *    centers/{centerId}
+ *    students/{studentId}
+ *    students/{studentId}/payments/{paymentId}
+ * ----------------------------------------------------------------- */
 
 import {
-  collection, collectionGroup, query, where, orderBy, limit,
-  startAfter, getDocs, addDoc, updateDoc, doc, serverTimestamp
+  collection, query, where, orderBy, limit,
+  startAfter, getDocs, addDoc, updateDoc, doc,
+  serverTimestamp, collectionGroup
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db }                 from './firebase.js';
 import { $, uploadImage }     from './utils.js';
@@ -49,7 +50,9 @@ export function initStudents(user, profile, cMap) {
   const form = $('student-form');
   if (form) form.onsubmit = async e => {
     e.preventDefault();
+    $('saving-spinner')?.classList.remove('hidden');        // spinner ON
     await saveStudent();
+    $('saving-spinner')?.classList.add   ('hidden');        // spinner OFF
     form.reset();
     editingId = null;
     refresh(true);
@@ -69,8 +72,7 @@ export function initStudents(user, profile, cMap) {
   on('btn-add-payment', () => {
     if (!currentDetailId || !currentDetailData) return;
     import('./payments.js').then(({ addPayment }) => {
-      const ownerUid = currentDetailData.ownerUid || currentUser.uid;
-      addPayment(ownerUid, currentDetailId, currentDetailData.fee || 0);
+      addPayment(currentDetailId, currentDetailData.fee || 0);   // ← novo padrão
     });
   });
 
@@ -83,23 +85,22 @@ export function initStudents(user, profile, cMap) {
 function buildQuery() {
   const centerFilter = $('filter-center')?.value || '';
 
-  /* admin → todos os alunos */
+  /* ADMIN → students raiz (pode filtrar por centro) */
   if (isAdmin) {
-    let q = collectionGroup(db, 'students');
+    let q = collection(db, 'students');
     if (centerFilter) q = query(q, where('centerId', '==', centerFilter));
     return { q, paginated: false };
   }
 
-  /* usuário / secretaria */
-  const base = collection(db, 'users', currentUser.uid, 'students');
+  /* SECRETARIA → vê somente alunos do seu centro */
+  const base = collection(db, 'students');
+  const secCenter = currentProfile.centerId;
+  let q = query(base, where('centerId', '==', secCenter));
 
-  if (!centerFilter) {
-    let q = query(base, orderBy('name'), limit(PAGE));
-    if (lastDoc) q = query(q, startAfter(lastDoc));
-    return { q, paginated: true };
-  }
-
-  return { q: query(base, where('centerId', '==', centerFilter)), paginated: false };
+  /* paginação pelo nome */
+  q = query(q, orderBy('name'), limit(PAGE));
+  if (lastDoc) q = query(q, startAfter(lastDoc));
+  return { q, paginated: true };
 }
 
 /* ===================================================================
@@ -134,7 +135,8 @@ function renderList(docs, reset, sortClient) {
   if (!list) return;
   if (reset) list.innerHTML = '';
 
-  const arr = sortClient ? [...docs].sort((a,b)=>a.data().name.localeCompare(b.data().name,'pt-BR')) : docs;
+  const arr = sortClient ? [...docs].sort((a,b)=>
+               a.data().name.localeCompare(b.data().name,'pt-BR')) : docs;
 
   arr.forEach(d => {
     const s = d.data();
@@ -150,7 +152,7 @@ function renderList(docs, reset, sortClient) {
       currentDetailId = d.id;
       currentDetailData = s;
       showStudentDetail(d.id, s);
-      listPayments(s.ownerUid || currentUser.uid, d.id);
+      listPayments(d.id);                                  // ← novo: só studentId
     };
     list.appendChild(li);
   });
@@ -175,7 +177,7 @@ async function saveStudent() {
   const photoFile = $('student-photo').files[0];
   if (photoFile) payload.photoURL = await uploadImage(photoFile, currentUser.uid);
 
-  const col = collection(db, 'users', currentUser.uid, 'students');
+  const col = collection(db, 'students');
 
   if (editingId) {
     await updateDoc(doc(col, editingId), payload);
@@ -208,6 +210,6 @@ export function fillCenterSelects() {
   }
 }
 
-/* paginação para ui.js se precisar */
+/* paginação p/ ui.js se precisar */
 export function pagePrev() { lastDoc = null; refresh(true); }
 export function pageNext() { refresh(false); }
