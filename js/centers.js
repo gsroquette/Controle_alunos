@@ -1,4 +1,4 @@
-/* centers.js  ------------------------------------------------------- */
+/* centers.js ------------------------------------------------------- */
 import { db } from './firebase.js';
 import { $  } from './utils.js';
 import {
@@ -6,37 +6,33 @@ import {
   getDocs, query, orderBy
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-let role         = 'admin';   // 'admin' | 'secretaria'
+let role = 'admin';
 let userCenterId = '';
-let savingCenter = false;     // evita clique duplo
 
-/* ====================================================================
- * INIT  ──────────────────────────────────────────────────────────────
- * Chamado por main.js: centersMap = await initCenters(profile)
- * Retorna Map<id,{name}>
- * ================================================================== */
-export async function initCenters(profile = { role: 'admin', centerId: '' }) {
+export async function initCenters(profile = { role:'admin', centerId:'' }) {
   role         = profile.role;
   userCenterId = profile.centerId || '';
 
-  // Se não for admin, oculta o formulário "Novo Centro"
   if (role !== 'admin') {
     $('center-wrapper')?.classList.add('hidden');
   } else {
-    $('center-form')?.addEventListener('submit', saveCenter);
+    /* listener só 1 vez ― evita duplicar ao navegar */
+    const form = $('center-form');
+    if (form && !form.dataset.bound) {
+      form.addEventListener('submit', saveCenter, { once:false });
+      form.dataset.bound = 'true';
+    }
   }
-
-  // Carrega a lista (e popula selects) — devolve Map
   return await loadCenters();
 }
 
-/* ====================================================================
- * SALVAR NOVO CENTRO  (apenas admin)
- * ================================================================== */
+/* ---------- SALVAR ---------- */
+let saving = false;
+
 async function saveCenter(e) {
   e.preventDefault();
-  if (savingCenter) return;          // evita duplo-clique
-  savingCenter = true;
+  if (saving) return;               // bloqueia duplo-clique
+  saving = true;
 
   const name    = $('center-name').value.trim();
   const address = $('center-address').value.trim();
@@ -44,75 +40,52 @@ async function saveCenter(e) {
 
   if (!name || !address || !manager) {
     alert('Preencha todos os campos!');
-    savingCenter = false;
+    saving = false;
     return;
   }
 
   try {
-    // grava direto na coleção raiz "centers"
-    const ref = await addDoc(collection(db, 'centers'), { name, address, manager });
-    console.log('Centro salvo com ID:', ref.id);   // confirma no console
-
+    const ref = await addDoc(collection(db,'centers'), { name, address, manager });
+    console.log('Centro salvo → ID:', ref.id);
     alert('Centro salvo!');
     e.target.reset();
-    await loadCenters();                           // repopula selects
+    await loadCenters();
   } catch (err) {
-    console.error('Erro ao salvar centro:', err);
-    alert('Falha ao salvar centro:\n' + err.message);
+    console.error('Falha ao gravar centro:', err);
+    alert('Erro ao salvar centro:\n' + err.message);
   } finally {
-    savingCenter = false;
+    saving = false;
   }
 }
 
-/* ====================================================================
- * CARREGAR CENTROS  ➜  popular selects  ➜  retornar Map<id,{name}>
- * ================================================================== */
+/* ---------- CARREGAR / POPULAR SELECTS ---------- */
 export async function loadCenters() {
-
   const selStudent = $('student-center');
   const selFilter  = $('filter-center');
-
-  // limpa selects (mantém placeholder)
   selStudent && (selStudent.length = 1);
   selFilter  && (selFilter.length  = 1);
 
-  /* ---------- lista completa (admin) ---------- */
-  const snap = await getDocs(
-    query(collection(db, 'centers'), orderBy('name'))
-  );
-
-  snap.forEach(docSnap => {
-    const { name } = docSnap.data();
-    selStudent?.appendChild(new Option(name, docSnap.id));
-    selFilter ?.appendChild(new Option(name, docSnap.id));
+  const snap = await getDocs(query(collection(db,'centers'), orderBy('name')));
+  snap.forEach(d => {
+    const { name } = d.data();
+    selStudent?.appendChild(new Option(name, d.id));
+    selFilter ?.appendChild(new Option(name, d.id));
   });
 
-  /* ---------- ajustes p/ secretaria ---------- */
+  /* secretaria: trava selects */
   if (role !== 'admin' && userCenterId) {
-
-    // Se o centro da secretaria não apareceu, busca individualmente
-    if (!snap.docs.some(d => d.id === userCenterId)) {
-      try {
-        const solo = await getDoc(doc(db, 'centers', userCenterId));
-        if (solo.exists()) {
-          const { name } = solo.data();
-          selStudent?.appendChild(new Option(name, userCenterId));
-          selFilter ?.appendChild(new Option(name, userCenterId));
-        }
-      } catch (err) {
-        console.warn('Falha ao buscar centro da secretaria:', err);
+    if (!snap.docs.some(d=>d.id===userCenterId)) {
+      const solo = await getDoc(collection(db,'centers'), userCenterId);
+      if (solo.exists()) {
+        const { name } = solo.data();
+        selStudent?.appendChild(new Option(name,userCenterId));
+        selFilter ?.appendChild(new Option(name,userCenterId));
       }
     }
-
-    // trava selects
-    selStudent?.setAttribute('disabled', '');
-    selFilter ?.setAttribute('disabled', '');
+    selStudent?.setAttribute('disabled','');
+    selFilter ?.setAttribute('disabled','');
     selStudent && (selStudent.value = userCenterId);
     selFilter  && (selFilter.value  = userCenterId);
   }
-
-  /* ---------- devolve Map<id,{name}> ---------- */
-  return new Map(
-    snap.docs.map(d => [d.id, { name: d.data().name }])
-  );
+  return new Map(snap.docs.map(d=>[d.id,{ name:d.data().name }]));
 }
