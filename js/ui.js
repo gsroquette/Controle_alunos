@@ -1,87 +1,55 @@
-/* ui.js ============================================================ */
-import { $ }                   from './utils.js';
-import { fillCenterSelects }   from './students.js';   // mantém selects sincronizados
+/* ui.js -----------------------------------------------------------
+ * Funções auxiliares de interface
+ * ----------------------------------------------------------------*/
 
-/* -------- referências das seções -------- */
-const sections = {
-  auth      : $('auth-section'),
-  home      : $('home-section'),
-  students  : $('dashboard-section'),
-  addForm   : $('add-student-section'), 
-  detail    : $('student-section'),
-  totals    : $('totals-section'),
-  centers   : $('centers-section'),
-  defaulters: $('defaulters-section')
-};
+/* ========== utilitário ========= */
+import { $ } from './utils.js';
+import { formatMoney } from './utils.js';   // se precisar
 
-/* helpers show / hide ---------------------------------------------- */
-const hideAll  = () => Object.values(sections)
-  .forEach(el => el && el.classList.add('hidden'));
+/* ================================================================ */
+/* 1. Detalhe do aluno                                              */
+/* ================================================================ */
+export function showStudentDetail(id, s) {
+  // preenche os campos do "student-section"
+  $('detail-name')    .textContent = s.name;
+  $('detail-contact') .textContent = s.contact   || '—';
+  $('detail-class')   .textContent = s.class     || '—';
+  $('detail-guardian').textContent = s.guardian  || '—';
+  $('detail-fee')     .textContent = s.fee != null ? formatMoney(s.fee) : '—';
+  $('detail-notes')   .textContent = s.notes     || '';
+  $('detail-created') .textContent =
+    s.createdAt ? new Date(s.createdAt.seconds * 1000).toLocaleString('pt-BR')
+                : '—';
 
-const showOnly = key => {
-  hideAll();
-  sections[key]?.classList.remove('hidden');
-};
+  const photo = $('detail-photo');
+  if (s.photoURL) {
+    photo.src = s.photoURL;
+    photo.classList.remove('hidden');
+  } else {
+    photo.classList.add('hidden');
+  }
 
-/* ---------- exportados para outros módulos ---------- */
-export const showAuth       = () => showOnly('auth');
-export const showHome       = () => showOnly('home');
-export const showStudents   = () => { showOnly('students'); };
-export const showTotals     = () => showOnly('totals');
-export const showCenters    = () => showOnly('centers');
-export const showDefaulters = () => showOnly('defaulters');
-
-/* ==================================================== */
-/*   Detalhe do aluno                                   */
-/* ==================================================== */
-export function showStudentDetail(id, data) {
-  if (!sections.detail) return;               // segurança
-
-  $('detail-photo')   && ( $('detail-photo').src        = data.photoURL || '' );
-  $('detail-name')    && ( $('detail-name').textContent = data.name );
-  $('detail-contact') && ( $('detail-contact').textContent  = data.contact  || '' );
-  $('detail-class')   && ( $('detail-class').textContent    = data.class    || '' );
-  $('detail-guardian')&& ( $('detail-guardian').textContent = data.guardian || '' );
-  $('detail-fee')     && ( $('detail-fee').textContent =
-        data.fee ? `Mensalidade: R$ ${data.fee.toFixed(2)}` : 'Bolsista' );
-  $('detail-notes')   && ( $('detail-notes').textContent   = data.notes    || '' );
-  $('detail-created') && ( $('detail-created').textContent =
-        data.createdAt ? new Date(data.createdAt.seconds * 1000)
-                           .toLocaleDateString() : '' );
-
-  showOnly('detail');
+  // mostra section
+  $('dashboard-section')?.classList.add   ('hidden');
+  $('student-section')  ?.classList.remove('hidden');
 }
 
-/* ---------- botões “voltar” ---------- */
-[
-  ['back-dashboard'        , showStudents],
-  ['back-to-students'      , showStudents],
-  ['back-dashboard-2'      , showStudents],
-  ['back-home-students'    , showHome    ],
-  ['back-home-totals'      , showHome    ],
-  ['back-home-centers'     , showHome    ],
-  ['back-home-defaulters'  , showHome    ]
-].forEach(([id, fn]) => {
-  const el = $(id);
-  if (el) el.onclick = fn;
-});
-
-/* ==================================================== */
-/*  Formulário de Centros – repopula selects após salvar */
-/* ==================================================== */
-const centerForm = $('center-form');
-if (centerForm) {
-  centerForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    /* a lógica real de salvar fica em centers.js;
-       aqui só aguardamos e repopulamos filtros */
-    // -> centers.js já intercepta o submit e salva
-
-    await fillCenterSelects();       // sincroniza filtros / formulário
-    alert('Centro salvo!');
-    e.target.reset();
-  });
+/* ================================================================ */
+/* 2. Ocultar section de detalhe                                    */
+/* ================================================================ */
+export function hideStudentDetail() {
+  $('student-section' )?.classList.add   ('hidden');
+  $('dashboard-section')?.classList.remove('hidden');
 }
 
-/* exibe login por padrão até onAuthStateChanged trocar para Home */
-showAuth();
+/* ================================================================ */
+/* 3. Outros helpers de UI (se existirem)                           */
+/* ================================================================ */
+/* … adicione aqui se precisar … */
+
+/* -----------------------------------------------------------------
+ *  ⚠️ Atenção
+ *  A antiga rotina que ficava aqui ouvindo "submit" em #center-form
+ *  foi removida. O salvamento de centros é feito exclusivamente
+ *  pelo módulo centers.js, evitando dupla submissão e campos vazios.
+ * ----------------------------------------------------------------*/
