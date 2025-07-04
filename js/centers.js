@@ -41,6 +41,8 @@ console.trace();                               // mostra a pilha
   const name    = $('center-name').value.trim();
   const address = $('center-address').value.trim();
   const manager = $('center-manager').value.trim();
+console.log('%cValores lidos →', 'color:lime',
+              { name, address, manager });
 
   if (!name || !address || !manager) {
     alert('Preencha todos os campos!');
