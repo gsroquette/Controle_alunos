@@ -15,7 +15,7 @@ import {
 const profileCache = new Map();
 
 /* ------------------------------------------------------------------
- * 1. LISTAR PAGAMENTOS
+ * 1. LISTAR PAGAMENTOS dos alunos
  * ----------------------------------------------------------------*/
 export async function listPayments(stuId) {
   const UL = $('payments-list');
