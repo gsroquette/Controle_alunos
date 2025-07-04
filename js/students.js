@@ -13,7 +13,8 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db }                 from './firebase.js';
 import { $, uploadImage }     from './utils.js';
-import { showStudentDetail }  from './ui.js';
+import { showStudentDetail,
+         hideStudentDetail }  from './ui.js';
 import { listPayments }       from './payments.js';
 
 /* ---------------- estado ---------------- */
@@ -46,7 +47,40 @@ export function initStudents(user, profile, cMap) {
   on('btn-prev', () => { lastDoc = null; refresh(true); });
   on('btn-next', () => refresh(false));
 
-  /* formulário */
+  /* ===== Botões de navegação dentro da UI de alunos ===== */
+  on('back-to-students', hideStudentDetail);
+
+  on('btn-edit-student', () => {
+    if (!currentDetailId || !currentDetailData) return;
+
+    // 1. Pré-preenche o formulário
+    const s = currentDetailData;
+    $('student-center').value    = s.centerId;
+    $('student-name').value      = s.name;
+    $('student-contact').value   = s.contact;
+    $('student-class').value     = s.class;
+    $('student-guardian').value  = s.guardian;
+    $('student-notes').value     = s.notes;
+    $('student-scholar').checked = !!s.isScholarship;
+    $('student-fee').value       = s.fee ?? '';
+
+    if (s.photoURL) {
+      $('preview-photo').src = s.photoURL;
+      $('preview-photo').classList.remove('hidden');
+    } else {
+      $('preview-photo').classList.add('hidden');
+    }
+
+    // 2. Marca para update
+    editingId = currentDetailId;
+
+    // 3. Mostra a tela de edição
+    $('student-section')      ?.classList.add   ('hidden');
+    $('dashboard-section')    ?.classList.add   ('hidden');
+    $('add-student-section')  ?.classList.remove('hidden');
+  });
+
+  /* ===== formulário ===== */
   const form = $('student-form');
   if (form) form.onsubmit = async e => {
     e.preventDefault();
@@ -66,6 +100,9 @@ export function initStudents(user, profile, cMap) {
       editingId = null;
       refresh(true);
       alert('Aluno salvo!');
+      // volta para a lista
+      $('add-student-section')?.classList.add   ('hidden');
+      $('dashboard-section')  ?.classList.remove('hidden');
     } catch (err) {
       alert('Erro ao salvar aluno:\n' + err.message);
     } finally {
