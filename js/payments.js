@@ -7,8 +7,12 @@
 import { db, auth } from './firebase.js';
 import { $ }        from './utils.js';
 import {
-  collection, addDoc, getDocs, query, where, serverTimestamp
+  collection, addDoc, getDocs, getDoc,
+  query, where, doc, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+/* ---------------- cache de perfis ---------------- */
+const profileCache = new Map();
 
 /* ------------------------------------------------------------------
  * 1. LISTAR PAGAMENTOS
@@ -30,15 +34,41 @@ export async function listPayments(stuId) {
     );
 
     UL.innerHTML = rows.length ? '' : '<li>Nenhum pagamento ainda.</li>';
-    rows.forEach(p => {
+
+    for (const p of rows) {
+      /* resolve nome do usuário que registrou */
+      const uid = p.requestorUid || p.createdBy || '';
+      let userName = uid;
+
+      if (uid) {
+        if (profileCache.has(uid)) {
+          userName = profileCache.get(uid);
+        } else {
+          try {
+            const prof = await getDoc(doc(db, 'profiles', uid));
+            userName = prof.exists()
+              ? (prof.data().name || uid)
+              : uid;
+          } catch {
+            /* deixa uid */
+          }
+          profileCache.set(uid, userName);
+        }
+      }
+
       const ts = p.timestamp?.seconds
         ? new Date(p.timestamp.seconds * 1000).toLocaleString('pt-BR')
         : '—';
+
       UL.insertAdjacentHTML(
         'beforeend',
-        `<li>${String(p.month).padStart(2,'0')}/${p.year} — ${ts}</li>`
+        `<li>
+           ${String(p.month).padStart(2,'0')}/${p.year}
+           — ${ts}
+           — <span class="text-gray-600">${userName}</span>
+         </li>`
       );
-    });
+    }
 
   } catch (err) {
     console.error('Erro ao carregar pagamentos:', err);
@@ -72,7 +102,7 @@ export async function addPayment(stuId, centerId, fee = 0) {
     month,
     year,
     value       : Number(fee) || 0,
-    requestorUid: userUid,        // 🔸 novo campo
+    requestorUid: userUid,        // 🔸 quem registrou
     createdBy   : userUid,        // (back-compat)
     timestamp   : serverTimestamp()
   });
