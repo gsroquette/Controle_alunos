@@ -1,4 +1,9 @@
-/* totals.js -------------------------------------------------------- */
+/* totals.js --------------------------------------------------------
+ *  Soma total recebido por mês
+ *  Estrutura centralizada:
+ *    students/{studentId}
+ *    students/{studentId}/payments/{paymentId}
+ * ----------------------------------------------------------------- */
 import {
   collection, getDocs, query, where
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -8,10 +13,9 @@ import { $  } from './utils.js';
 
 /**
  * Carrega totais recebidos por mês.
- * @param {firebase.User} user      – usuário logado (para path / segurança)
  * @param {{role:string, centerId?:string}} profile – perfil (admin | secretaria)
  */
-export async function loadTotals(user, profile = { role: 'admin' }) {
+export async function loadTotals(profile = { role: 'admin' }) {
 
   const TBODY = $('totals-body');
   if (!TBODY) return;
@@ -20,30 +24,26 @@ export async function loadTotals(user, profile = { role: 'admin' }) {
     '<tr><td class="p-2" colspan="2">Carregando…</td></tr>';
 
   /* --------------------------------------------------------------
-   * 1. Busca alunos (com filtro de centro se secretaria)
+   * 1. Buscar alunos (filtra por centro se secretaria)
    * -------------------------------------------------------------- */
-  const stuBase = collection(db, 'users', user.uid, 'students');
-  const stuSnap = await getDocs(
-    profile.role === 'secretaria' && profile.centerId
-      ? query(stuBase, where('centerId', '==', profile.centerId))
-      : stuBase
-  );
+  let stuQuery = collection(db, 'students');
+  if (profile.role === 'secretaria' && profile.centerId) {
+    stuQuery = query(stuQuery, where('centerId', '==', profile.centerId));
+  }
+  const stuSnap = await getDocs(stuQuery);
 
   /* mapa "mm/aaaa" -> total R$ */
   const totals = new Map();
 
   /* --------------------------------------------------------------
    * 2. Para cada aluno: soma mensalidades pagas
-   *    • ignora bolsistas
-   *    • cada pagamento conta 1×fee (permite múltiplos pagamentos / mês)
    * -------------------------------------------------------------- */
   for (const stu of stuSnap.docs) {
     const sData = stu.data();
-    if (sData.isScholarship) continue;
+    if (sData.isScholarship) continue;          // ignora bolsistas
 
     const paySnap = await getDocs(
-      collection(db, 'users', user.uid,
-                 'students', stu.id, 'payments')
+      collection(db, 'students', stu.id, 'payments')
     );
 
     paySnap.forEach(p => {
