@@ -17,11 +17,14 @@ export async function initCenters(profile = { role:'admin', centerId:'' }) {
     $('center-wrapper')?.classList.add('hidden');
   } else {
     /* listener só 1 vez ― evita duplicar ao navegar */
-    const form = $('center-form');
-    if (form && !form.dataset.bound) {
-      form.addEventListener('submit', saveCenter, { once:false });
-      form.dataset.bound = 'true';
-    }
+    // Aguardar a próxima animação para garantir que o DOM foi renderizado
+setTimeout(() => {
+  const form = $('center-form');
+  if (form && !form.dataset.bound) {
+    form.addEventListener('submit', saveCenter, { once:false });
+    form.dataset.bound = 'true';
+  }
+}, 100); // espera 100ms para garantir que o form foi mostrado
   }
   return await loadCenters();
 }
