@@ -48,28 +48,31 @@ export function initStudents(user, profile, cMap) {
 
   /* formulário */
   const form = $('student-form');
-if (form) form.onsubmit = async e => {
-  e.preventDefault();
+  if (form) form.onsubmit = async e => {
+    e.preventDefault();
 
-  const btn     = form.querySelector('button[type="submit"]');
-  const spinner = $('saving-spinner');
+    /* botão de submit — tolera ausência de type="submit" */
+    const btn =
+      form.querySelector('button[type="submit"]') ||
+      form.querySelector('button');
+    const spinner = $('saving-spinner');
 
-  btn.disabled = true;
-  spinner.classList.remove('hidden');
+    btn && (btn.disabled = true);
+    spinner?.classList.remove('hidden');
 
-  try {
-    await saveStudent();
-    form.reset();
-    editingId = null;
-    refresh(true);
-    alert('Aluno salvo!');
-  } catch (err) {
-    alert('Erro ao salvar aluno:\n' + err.message);
-  } finally {
-    spinner.classList.add('hidden');
-    btn.disabled = false;
-  }
-};
+    try {
+      await saveStudent();
+      form.reset();
+      editingId = null;
+      refresh(true);
+      alert('Aluno salvo!');
+    } catch (err) {
+      alert('Erro ao salvar aluno:\n' + err.message);
+    } finally {
+      spinner?.classList.add('hidden');
+      btn && (btn.disabled = false);
+    }
+  };
 
   /* foto preview */
   $('student-photo')?.addEventListener('change', e => {
