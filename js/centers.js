@@ -1,7 +1,6 @@
 /* centers.js -------------------------------------------------------
- *  Cadastro e listagem de Centros
- *  Estrutura centralizada: /centers/{centerId}
- * ----------------------------------------------------------------- */
+ *  Cadastro e listagem de Centros (coleção raiz /centers)
+ * ---------------------------------------------------------------- */
 import { db } from './firebase.js';
 import { $  } from './utils.js';
 import {
@@ -22,14 +21,12 @@ export async function initCenters(profile = { role: 'admin', centerId: '' }) {
   if (role !== 'admin') {
     $('center-wrapper')?.classList.add('hidden');
   } else {
-    /* garante um único listener, adicionado quando o form já existe */
-    setTimeout(() => {
-      const form = $('center-form');
-      if (form && !form.dataset.bound) {
-        form.addEventListener('submit', saveCenter, { once: true }); // ← evita duplos
-        form.dataset.bound = 'true';
-      }
-    }, 0);                          // 0 ms já basta para o DOM estar renderizado
+    /* garante um único listener, ligado quando o form já existe */
+    const form = $('center-form');
+    if (form && !form.dataset.bound) {
+      form.addEventListener('submit', saveCenter, { once: false });
+      form.dataset.bound = 'true';
+    }
   }
   return await loadCenters();
 }
@@ -41,12 +38,14 @@ let saving = false;
 
 async function saveCenter(e) {
   e.preventDefault();
-  if (saving) return;               // bloqueia duplo-clique
+  if (saving) return;                 // bloqueia duplo-clique
   saving = true;
 
-  const name    = $('center-name')   ?.value.trim() || '';
-  const address = $('center-address')?.value.trim() || '';
-  const manager = $('center-manager')?.value.trim() || '';
+  /* ------------ lê via FormData (sempre pega o form certo) ------- */
+  const fd      = new FormData(e.target);
+  const name    = (fd.get('center-name')    || '').trim();
+  const address = (fd.get('center-address') || '').trim();
+  const manager = (fd.get('center-manager') || '').trim();
 
   if (!name || !address || !manager) {
     alert('Preencha todos os campos!');
@@ -57,8 +56,8 @@ async function saveCenter(e) {
   try {
     await addDoc(collection(db, 'centers'), { name, address, manager });
     alert('Centro salvo!');
-    await loadCenters();            // repopula selects
-    e.target.reset();               // só limpa depois de gravar
+    await loadCenters();              // repopula selects
+    e.target.reset();                 // limpa só depois de gravar
   } catch (err) {
     console.error('Falha ao gravar centro:', err);
     alert('Erro ao salvar centro:\n' + err.message);
@@ -68,16 +67,14 @@ async function saveCenter(e) {
 }
 
 /* ================================================================ */
-/*  LOAD CENTERS — popular selects & devolver Map<id,{name}>        */
+/*  LOAD CENTERS – popular selects & devolver Map<id,{name}>        */
 /* ================================================================ */
 export async function loadCenters() {
   const selStudent = $('student-center');
   const selFilter  = $('filter-center');
-
-  selStudent && (selStudent.length = 1);   // mantém placeholder
+  selStudent && (selStudent.length = 1);
   selFilter  && (selFilter.length  = 1);
 
-  /* lista completa, ordenada */
   const snap = await getDocs(
     query(collection(db, 'centers'), orderBy('name'))
   );
@@ -88,10 +85,8 @@ export async function loadCenters() {
     selFilter ?.appendChild(new Option(name, docSnap.id));
   });
 
-  /* ajustes se o usuário for secretaria */
+  /* secretaria: trava selects */
   if (role !== 'admin' && userCenterId) {
-
-    /* se o centro da secretaria não veio na lista (inconsistência rara) */
     if (!snap.docs.some(d => d.id === userCenterId)) {
       const solo = await getDoc(collection(db, 'centers'), userCenterId);
       if (solo.exists()) {
@@ -100,16 +95,11 @@ export async function loadCenters() {
         selFilter ?.appendChild(new Option(name, userCenterId));
       }
     }
-
-    /* trava selects */
     selStudent?.setAttribute('disabled', '');
     selFilter ?.setAttribute('disabled', '');
     selStudent && (selStudent.value = userCenterId);
     selFilter  && (selFilter.value  = userCenterId);
   }
 
-  /* devolve Map com id → { name } */
-  return new Map(
-    snap.docs.map(d => [d.id, { name: d.data().name }])
-  );
+  return new Map(snap.docs.map(d => [d.id, { name: d.data().name }]));
 }
