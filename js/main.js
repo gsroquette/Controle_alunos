@@ -12,8 +12,8 @@ import { initDefaulters } from './defaulters.js';
 import { loadTotals }     from './totals.js';
 
 /* ------------ utilidades --------------- */
-import { $ }       from './utils.js';
-import { signOut } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import { $ } from './utils.js';
+import { signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 /* ===================================================================
  * 0.  Estado compartilhado
@@ -30,7 +30,7 @@ const on = (id, fn) => { const el = $(id); if (el) el.onclick = fn; };
  * =================================================================*/
 initAuth(async (user) => {
 
-  /* 1-A. dados do usuário / perfil ---------------------------------*/
+  /* 1-A. dados do usuário / perfil -------------------------------- */
   firebaseUser = user;
   userProfile  = await getUserProfile(user.uid);
 
@@ -39,15 +39,15 @@ initAuth(async (user) => {
     return;
   }
 
-  /* 1-B. carrega centros -------------------------------------------*/
+  /* 1-B. carrega centros ------------------------------------------ */
   //  ⚠️  initCenters agora recebe **apenas** o profile
-  centersMap = await initCenters(userProfile);      // devolve Map
+  centersMap = await initCenters(userProfile); // devolve Map
 
-  /* 1-C. inicia módulos dependentes --------------------------------*/
+  /* 1-C. inicia módulos dependentes ------------------------------- */
   initStudents  (firebaseUser, userProfile, centersMap);
   initDefaulters(firebaseUser, userProfile, centersMap);
 
-  /* 1-D. interface -------------------------------------------------*/
+  /* 1-D. interface ------------------------------------------------ */
   setupHomeNav();
   showSection('home');
 });
@@ -58,16 +58,15 @@ initAuth(async (user) => {
 function setupHomeNav() {
 
   /* navegação */
-  on('btn-nav-search'    , () => showSection('students'));
-  on('btn-nav-add'       , () => showSection('addStudent'));
+  on('btn-nav-search'     , () => showSection('students'));
+  on('btn-nav-add'        , () => showSection('addStudent'));
+  on('btn-nav-defaulters' , () => showSection('defaulters'));
+  on('btn-nav-centers'    , () => showSection('centers'));
 
-  on('btn-nav-totals'    , async () => {
-   await loadTotals(firebaseUser, userProfile);
+  on('btn-nav-totals', async () => {
+    await loadTotals(firebaseUser, userProfile);
     showSection('totals');
   });
-
-  on('btn-nav-defaulters', () => showSection('defaulters'));
-  on('btn-nav-centers'   , () => showSection('centers'));
 
   /* apenas admin vê “Cadastro de Centro” */
   if (userProfile.role !== 'admin') {
@@ -75,25 +74,29 @@ function setupHomeNav() {
   }
 
   /* logout */
-  on('logout-btn', () => signOut());
+  on('logout-btn', () => {
+    const auth = getAuth();
+    signOut(auth)
+      .then(() => window.location.href = 'index.html')
+      .catch((error) => console.error('Erro ao sair:', error));
+  });
 }
 
 /* ===================================================================
- * 3. Botões “Voltar” das sub-telas
+ * 3. Botões “Voltar” das sub‑telas
  * =================================================================*/
 [
   ['back-home-students' , 'home'],
   ['back-home-add'      , 'home'],
   ['back-home-totals'   , 'home'],
   ['back-home-centers'  , 'home'],
-  ['back-home-defaulters','home']
+  ['back-home-defaulters', 'home']
 ].forEach(([id, target]) => on(id, () => showSection(target)));
 
 /* ===================================================================
  * 4. Router – mostra / esconde sections
  * =================================================================*/
-function showSection(target)
-{
+function showSection(target) {
   const sectionId = {
     auth      : 'auth-section',
     home      : 'home-section',
