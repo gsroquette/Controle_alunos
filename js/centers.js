@@ -34,6 +34,10 @@ async function saveCenter(e) {
   if (saving) return;               // bloqueia duplo-clique
   saving = true;
 
+console.clear();                               // limpa o console
+console.log('%cSUBMIT disparado', 'color:gold');
+console.trace();                               // mostra a pilha
+
   const name    = $('center-name').value.trim();
   const address = $('center-address').value.trim();
   const manager = $('center-manager').value.trim();
