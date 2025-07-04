@@ -1,6 +1,6 @@
 /* students.js ------------------------------------------------------
  *  Lista, cadastro e edição de alunos + integração com pagamentos
- *  Estrutura centralizada (coleções raiz):
+ *  Estrutura centralizada:
  *    centers/{centerId}
  *    students/{studentId}
  *    students/{studentId}/payments/{paymentId}
@@ -9,7 +9,7 @@
 import {
   collection, query, where, orderBy, limit,
   startAfter, getDocs, addDoc, updateDoc, doc,
-  serverTimestamp, collectionGroup
+  serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { db }                 from './firebase.js';
 import { $, uploadImage }     from './utils.js';
@@ -50,9 +50,9 @@ export function initStudents(user, profile, cMap) {
   const form = $('student-form');
   if (form) form.onsubmit = async e => {
     e.preventDefault();
-    $('saving-spinner')?.classList.remove('hidden');        // spinner ON
+    $('saving-spinner')?.classList.remove('hidden');
     await saveStudent();
-    $('saving-spinner')?.classList.add   ('hidden');        // spinner OFF
+    $('saving-spinner')?.classList.add('hidden');
     form.reset();
     editingId = null;
     refresh(true);
@@ -72,7 +72,11 @@ export function initStudents(user, profile, cMap) {
   on('btn-add-payment', () => {
     if (!currentDetailId || !currentDetailData) return;
     import('./payments.js').then(({ addPayment }) => {
-      addPayment(currentDetailId, currentDetailData.fee || 0);   // ← novo padrão
+      addPayment(
+        currentDetailId,                // studentId
+        currentDetailData.centerId,     // centerId (regras)
+        currentDetailData.fee || 0      // valor da mensalidade
+      );
     });
   });
 
@@ -85,19 +89,16 @@ export function initStudents(user, profile, cMap) {
 function buildQuery() {
   const centerFilter = $('filter-center')?.value || '';
 
-  /* ADMIN → students raiz (pode filtrar por centro) */
+  /* ADMIN */
   if (isAdmin) {
     let q = collection(db, 'students');
     if (centerFilter) q = query(q, where('centerId', '==', centerFilter));
     return { q, paginated: false };
   }
 
-  /* SECRETARIA → vê somente alunos do seu centro */
-  const base = collection(db, 'students');
+  /* SECRETARIA */
   const secCenter = currentProfile.centerId;
-  let q = query(base, where('centerId', '==', secCenter));
-
-  /* paginação pelo nome */
+  let q = query(collection(db, 'students'), where('centerId', '==', secCenter));
   q = query(q, orderBy('name'), limit(PAGE));
   if (lastDoc) q = query(q, startAfter(lastDoc));
   return { q, paginated: true };
@@ -135,8 +136,9 @@ function renderList(docs, reset, sortClient) {
   if (!list) return;
   if (reset) list.innerHTML = '';
 
-  const arr = sortClient ? [...docs].sort((a,b)=>
-               a.data().name.localeCompare(b.data().name,'pt-BR')) : docs;
+  const arr = sortClient
+    ? [...docs].sort((a,b)=>a.data().name.localeCompare(b.data().name,'pt-BR'))
+    : docs;
 
   arr.forEach(d => {
     const s = d.data();
@@ -149,10 +151,10 @@ function renderList(docs, reset, sortClient) {
       <span>${s.name}${s.isScholarship ? ' <span class="text-xs text-violet-700 font-semibold">(Bolsista)</span>' : ''}</span>
       <span class="text-sm text-gray-500">${centersMap.get(s.centerId)?.name || ''}</span>`;
     li.onclick = () => {
-      currentDetailId = d.id;
+      currentDetailId   = d.id;
       currentDetailData = s;
       showStudentDetail(d.id, s);
-      listPayments(d.id);                                  // ← novo: só studentId
+      listPayments(d.id);      // studentId
     };
     list.appendChild(li);
   });
