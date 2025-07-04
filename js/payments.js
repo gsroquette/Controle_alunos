@@ -1,9 +1,10 @@
 /* payments.js ------------------------------------------------------
  *  Listagem e registro de pagamentos
+ *  Estrutura centralizada: students/{studentId}/payments
  * --------------------------------------------------------------- */
 
-import { db } from './firebase.js';
-import { $ }  from './utils.js';
+import { db, auth } from './firebase.js';
+import { $ }        from './utils.js';
 import {
   collection, addDoc, getDocs, query, where, serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
@@ -11,13 +12,13 @@ import {
 /* ------------------------------------------------------------------
  * 1. LISTAR PAGAMENTOS
  * ----------------------------------------------------------------*/
-export async function listPayments(ownerUid, stuId) {
+export async function listPayments(stuId) {
   const UL = $('payments-list');
   if (!UL) return;
 
   UL.innerHTML = '<li>Carregando…</li>';
   try {
-    const col  = collection(db, 'users', ownerUid, 'students', stuId, 'payments');
+    const col  = collection(db, 'students', stuId, 'payments');
     const snap = await getDocs(col);
 
     const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -45,23 +46,27 @@ export async function listPayments(ownerUid, stuId) {
 /* ------------------------------------------------------------------
  * 2. ADICIONAR PAGAMENTO
  * ----------------------------------------------------------------*/
-export async function addPayment(ownerUid, stuId, fee = 0) {
-  const agora = new Date();
-  const month = agora.getMonth() + 1;
-  const year  = agora.getFullYear();
+export async function addPayment(stuId, centerId, fee = 0) {
+  const agora  = new Date();
+  const month  = agora.getMonth() + 1;
+  const year   = agora.getFullYear();
+  const userId = auth.currentUser?.uid || '';
 
-  const col = collection(db, 'users', ownerUid, 'students', stuId, 'payments');
+  const col = collection(db, 'students', stuId, 'payments');
 
-  /* duplicidade */
+  /* evitar duplicidade */
   const dup = await getDocs(query(col, where('month','==',month), where('year','==',year)));
-  if (!dup.empty) { alert('Pagamento deste mês já está registrado.'); return; }
+  if (!dup.empty) { alert('Pagamento deste mês já registrado.'); return; }
 
   await addDoc(col, {
-    month, year,
-    value: Number(fee) || 0,
-    timestamp: serverTimestamp()
+    centerId,
+    month,
+    year,
+    value      : Number(fee) || 0,
+    createdBy  : userId,
+    timestamp  : serverTimestamp()
   });
 
-  await listPayments(ownerUid, stuId);
+  await listPayments(stuId);
   alert('Pagamento registrado com sucesso!');
 }
