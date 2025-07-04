@@ -2,20 +2,20 @@
 import { db } from './firebase.js';
 import { $  } from './utils.js';
 import {
-  collection, doc, addDoc, getDoc,
+  collection, addDoc, getDoc,
   getDocs, query, orderBy
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-let role          = 'admin';   // 'admin' | 'secretaria'
-let userCenterId  = '';        // centro vinculado ao usuário (se secretaria)
+let role         = 'admin';   // 'admin' | 'secretaria'
+let userCenterId = '';
+let savingCenter = false;     // evita clique duplo
 
 /* ====================================================================
  * INIT  ──────────────────────────────────────────────────────────────
- * Chamado pelo main.js:       centersMap = await initCenters(profile)
+ * Chamado por main.js: centersMap = await initCenters(profile)
  * Retorna Map<id,{name}>
  * ================================================================== */
-export async function initCenters(profile = { role: 'admin', centerId: '' })
-{
+export async function initCenters(profile = { role: 'admin', centerId: '' }) {
   role         = profile.role;
   userCenterId = profile.centerId || '';
 
@@ -35,6 +35,8 @@ export async function initCenters(profile = { role: 'admin', centerId: '' })
  * ================================================================== */
 async function saveCenter(e) {
   e.preventDefault();
+  if (savingCenter) return;          // evita duplo-clique
+  savingCenter = true;
 
   const name    = $('center-name').value.trim();
   const address = $('center-address').value.trim();
@@ -42,15 +44,24 @@ async function saveCenter(e) {
 
   if (!name || !address || !manager) {
     alert('Preencha todos os campos!');
+    savingCenter = false;
     return;
   }
 
-  // ► agora grava DIRECT na coleção raiz "centers"
-  await addDoc(collection(db, 'centers'), { name, address, manager });
+  try {
+    // grava direto na coleção raiz "centers"
+    const ref = await addDoc(collection(db, 'centers'), { name, address, manager });
+    console.log('Centro salvo com ID:', ref.id);   // confirma no console
 
-  e.target.reset();
-  await loadCenters();          // repopula selects
-  alert('Centro salvo!');
+    alert('Centro salvo!');
+    e.target.reset();
+    await loadCenters();                           // repopula selects
+  } catch (err) {
+    console.error('Erro ao salvar centro:', err);
+    alert('Falha ao salvar centro:\n' + err.message);
+  } finally {
+    savingCenter = false;
+  }
 }
 
 /* ====================================================================
