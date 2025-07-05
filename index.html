@@ -2,19 +2,20 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Controle de Mensalidades</title>
 
-  <!-- ▼ CONFIGURAÇÃO PWA ------------------------------------------------ -->
-  <link rel="manifest" href="/manifest.json">
+  <!-- ===== PWA ===== -->
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e3a8a">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
-  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png">
-  <!-- ▲ ------------------------------------------------------------------ -->
+  <link rel="icon"  type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon"        sizes="192x192" href="icon-192.png">
+  <!-- ============== -->
 
   <script src="https://cdn.tailwindcss.com"></script>
   <style>.hidden{display:none}</style>
 </head>
+
 <body class="bg-gray-100 min-h-screen flex flex-col items-center p-4">
   <h1 class="text-2xl font-bold mb-4">Controle de Mensalidades</h1>
 
@@ -66,7 +67,6 @@
   <!-- ============ ADD STUDENT ============ -->
   <div id="add-student-section" class="hidden w-full max-w-3xl">
     <button id="back-home-add" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
-
     <h2 class="text-xl font-semibold mb-4">Adicionar / Editar Aluno</h2>
 
     <div id="student-form-wrapper">
@@ -91,7 +91,7 @@
         <input id="student-photo" type="file" accept="image/*" class="w-full" />
         <img  id="preview-photo" class="hidden w-24 h-24 object-cover rounded-full mx-auto border" />
 
-        <div id="upload-spinner" class="hidden flex justify-center">
+        <div id="upload-spinner"  class="hidden flex justify-center">
           <svg class="animate-spin h-6 w-6 text-blue-600" viewBox="0 0 24 24" fill="none">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"/>
@@ -118,12 +118,12 @@
       <div class="flex items-center space-x-4 mb-4">
         <img id="detail-photo" class="w-24 h-24 rounded-full object-cover" />
         <div>
-          <h2 id="detail-name" class="text-xl font-semibold"></h2>
-          <p id="detail-contact"  class="text-sm text-gray-600"></p>
-          <p id="detail-class"    class="text-sm text-gray-600"></p>
-          <p id="detail-guardian" class="text-sm text-gray-600"></p>
-          <p id="detail-fee"      class="text-sm text-gray-600"></p>
-          <p id="detail-created"  class="text-sm text-gray-500"></p>
+          <h2 id="detail-name"      class="text-xl font-semibold"></h2>
+          <p  id="detail-contact"   class="text-sm text-gray-600"></p>
+          <p  id="detail-class"     class="text-sm text-gray-600"></p>
+          <p  id="detail-guardian"  class="text-sm text-gray-600"></p>
+          <p  id="detail-fee"       class="text-sm text-gray-600"></p>
+          <p  id="detail-created"   class="text-sm text-gray-500"></p>
         </div>
       </div>
 
@@ -139,7 +139,6 @@
   <!-- ============ TOTALS ============ -->
   <div id="totals-section" class="hidden w-full max-w-2xl">
     <button id="back-home-totals" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
-
     <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
 
     <select id="totals-center" class="mb-4 p-2 border rounded w-full max-w-xs">
@@ -183,15 +182,12 @@
     </table>
   </div>
 
-  <!-- ============ SCRIPTS ============ -->
-  <script type="module" src="./js/main.js"></script>
+  <!-- ============ BOTÃO INSTALAR APP ============ -->
+  <button id="btn-install-app"
+          class="hidden fixed bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded shadow-lg z-50">
+    Instalar app
+  </button>
 
-  <!-- ▼ REGISTRA O SERVICE WORKER (PWA) ▼ -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/service-worker.js')
-        .catch(err => console.error('Falha ao registrar Service Worker:', err));
-    }
-  </script>
+  <script type="module" src="./js/main.js"></script>
 </body>
 </html>
