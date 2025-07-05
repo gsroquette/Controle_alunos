@@ -64,7 +64,7 @@ function setupHomeNav() {
   on('btn-nav-centers'    , () => showSection('centers'));
 
   on('btn-nav-totals', async () => {
-    await loadTotals(userProfile);
+  await loadTotals(userProfile, centersMap);   // passa o Map
     showSection('totals');
   });
 

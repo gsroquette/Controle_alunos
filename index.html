@@ -153,14 +153,29 @@
   </div>
 
   <!-- ============ TOTALS ============ -->
-  <div id="totals-section" class="hidden w-full max-w-2xl">
-    <button id="back-home-totals" class="mb-4 text-blue-600 underline">← Voltar ao início</button>
-    <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
-    <table class="w-full bg-white rounded shadow">
-      <thead class="bg-gray-200"><tr><th class="p-2 text-left">Mês/Ano</th><th class="p-2 text-left">Total</th></tr></thead>
-      <tbody id="totals-body"></tbody>
-    </table>
-  </div>
+<div id="totals-section" class="hidden w-full max-w-2xl">
+  <button id="back-home-totals" class="mb-4 text-blue-600 underline">
+    ← Voltar ao início
+  </button>
+
+  <h2 class="text-xl font-semibold mb-4">Totais por Mês</h2>
+
+  <!-- ▼ NOVO seletor de centros ▼ -->
+  <select id="totals-center"
+          class="mb-4 p-2 border rounded w-full max-w-xs">
+    <option value="">Todos os Centros</option>
+  </select>
+
+  <table class="w-full bg-white rounded shadow">
+    <thead class="bg-gray-200">
+      <tr>
+        <th class="p-2 text-left">Mês/Ano</th>
+        <th class="p-2 text-left">Total</th>
+      </tr>
+    </thead>
+    <tbody id="totals-body"></tbody>
+  </table>
+</div>
 
  <!-- ============ CENTERS ============ -->
 <div id="centers-section" class="hidden w-full max-w-lg">
