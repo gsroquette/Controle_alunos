@@ -69,7 +69,7 @@ export async function loadTotals(profile = { role: 'admin' }) {
         'beforeend',
         `<tr>
            <td class="p-2 border-t">${key}</td>
-           <td class="p-2 border-t">R$ ${total.toFixed(2)}</td>
+           <td class="p-2 border-t">${total.toFixed(2)}</td>
          </tr>`
       );
     });
