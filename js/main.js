@@ -13,7 +13,10 @@ import { loadTotals }     from './totals.js';
 
 /* ------------ utilidades --------------- */
 import { $ } from './utils.js';
-import { signOut, getAuth } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {
+  signOut,
+  getAuth
+} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 
 /* ===================================================================
  * 0.  Estado compartilhado
@@ -41,7 +44,7 @@ initAuth(async (user) => {
 
   /* 1-B. carrega centros ------------------------------------------ */
   //  ⚠️  initCenters agora recebe **apenas** o profile
-  centersMap = await initCenters(userProfile); // devolve Map
+  centersMap = await initCenters(userProfile);   // devolve Map
 
   /* 1-C. inicia módulos dependentes ------------------------------- */
   initStudents  (firebaseUser, userProfile, centersMap);
@@ -57,23 +60,23 @@ initAuth(async (user) => {
  * =================================================================*/
 function setupHomeNav() {
 
-  /* navegação */
+  /* navegação ----------------------------------------------------- */
   on('btn-nav-search'     , () => showSection('students'));
   on('btn-nav-add'        , () => showSection('addStudent'));
   on('btn-nav-defaulters' , () => showSection('defaulters'));
   on('btn-nav-centers'    , () => showSection('centers'));
 
   on('btn-nav-totals', async () => {
-  await loadTotals(userProfile, centersMap);   // passa o Map
+    await loadTotals(userProfile, centersMap);   // passa profile + Map
     showSection('totals');
   });
 
-  /* apenas admin vê “Cadastro de Centro” */
+  /* apenas admin vê “Cadastro de Centro” -------------------------- */
   if (userProfile.role !== 'admin') {
     $('btn-nav-centers')?.classList.add('hidden');
   }
 
-  /* logout */
+  /* logout -------------------------------------------------------- */
   on('logout-btn', () => {
     const auth = getAuth();
     signOut(auth)
@@ -83,7 +86,7 @@ function setupHomeNav() {
 }
 
 /* ===================================================================
- * 3. Botões “Voltar” das sub‑telas
+ * 3. Botões “Voltar” das sub-telas
  * =================================================================*/
 [
   ['back-home-students' , 'home'],
@@ -113,3 +116,29 @@ function showSection(target) {
   /* mostra a desejada */
   $(sectionId[target])?.classList.remove('hidden');
 }
+
+/* ===================================================================
+ * 5. (OPCIONAL) Botão “Instalar App” – suporte PWA
+ * ===================================================================
+ * Se quiser exibir um botão para instalação nativa (Android/desktop),
+ * basta acrescentar no HTML algo como:
+ *
+ *   <button id="btn-install" class="hidden ...">Instalar App</button>
+ *
+ * e manter o código abaixo.  Caso não deseje, apague este bloco.
+ * ------------------------------------------------------------------ */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = $('btn-install');
+  if (btn) {
+    btn.classList.remove('hidden');
+    btn.onclick = async () => {
+      btn.setAttribute('disabled', '');
+      deferredPrompt.prompt();
+      await deferredPrompt.userChoice;
+      deferredPrompt = null;
+    };
+  }
+});
