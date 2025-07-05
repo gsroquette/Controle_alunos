@@ -11,11 +11,11 @@ import {
   startAfter, getDocs, addDoc, updateDoc, doc,
   serverTimestamp
 } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-import { db }                 from './firebase.js';
-import { $, uploadImage }     from './utils.js';
-import { showStudentDetail,
-         hideStudentDetail }  from './ui.js';
-import { listPayments }       from './payments.js';
+
+import { db } from './firebase.js';
+import { $, uploadImage, resizeImage } from './utils.js';
+import { showStudentDetail, hideStudentDetail } from './ui.js';
+import { listPayments } from './payments.js';
 
 /* ---------------- estado ---------------- */
 const PAGE = 20;
@@ -47,13 +47,13 @@ export function initStudents(user, profile, cMap) {
   on('btn-prev', () => { lastDoc = null; refresh(true); });
   on('btn-next', () => refresh(false));
 
-  /* ===== Botões de navegação dentro da UI de alunos ===== */
+  /* navegação entre seções */
   on('back-to-students', hideStudentDetail);
 
   on('btn-edit-student', () => {
     if (!currentDetailId || !currentDetailData) return;
 
-    // 1. Pré-preenche o formulário
+    // --- pré-preenche o formulário ---
     const s = currentDetailData;
     $('student-center').value    = s.centerId;
     $('student-name').value      = s.name;
@@ -71,24 +71,19 @@ export function initStudents(user, profile, cMap) {
       $('preview-photo').classList.add('hidden');
     }
 
-    // 2. Marca para update
     editingId = currentDetailId;
 
-    // 3. Mostra a tela de edição
-    $('student-section')      ?.classList.add   ('hidden');
-    $('dashboard-section')    ?.classList.add   ('hidden');
-    $('add-student-section')  ?.classList.remove('hidden');
+    $('student-section')     ?.classList.add   ('hidden');
+    $('dashboard-section')   ?.classList.add   ('hidden');
+    $('add-student-section') ?.classList.remove('hidden');
   });
 
-  /* ===== formulário ===== */
+  /* formulário de novo/edição */
   const form = $('student-form');
   if (form) form.onsubmit = async e => {
     e.preventDefault();
 
-    /* botão de submit — tolera ausência de type="submit" */
-    const btn =
-      form.querySelector('button[type="submit"]') ||
-      form.querySelector('button');
+    const btn     = form.querySelector('button[type="submit"]') || form.querySelector('button');
     const spinner = $('saving-spinner');
 
     btn && (btn.disabled = true);
@@ -100,7 +95,6 @@ export function initStudents(user, profile, cMap) {
       editingId = null;
       refresh(true);
       alert('Aluno salvo!');
-      // volta para a lista
       $('add-student-section')?.classList.add   ('hidden');
       $('dashboard-section')  ?.classList.remove('hidden');
     } catch (err) {
@@ -111,7 +105,7 @@ export function initStudents(user, profile, cMap) {
     }
   };
 
-  /* foto preview */
+  /* preview da foto */
   $('student-photo')?.addEventListener('change', e => {
     const f = e.target.files[0];
     if (f) {
@@ -120,7 +114,7 @@ export function initStudents(user, profile, cMap) {
     }
   });
 
-  /* botão pagamento */
+  /* botão de pagamento */
   on('btn-add-payment', () => {
     if (!currentDetailId || !currentDetailData) return;
     import('./payments.js').then(({ addPayment }) => {
@@ -161,8 +155,8 @@ function buildQuery() {
  * =================================================================*/
 async function refresh(reset = false) {
   if (reset) {
-    lastDoc = null;
-    reachedEnd = false;
+    lastDoc     = null;
+    reachedEnd  = false;
     $('btn-prev')?.setAttribute('disabled', '');
   }
   if (reachedEnd) return;
@@ -182,14 +176,14 @@ async function refresh(reset = false) {
 }
 
 function renderList(docs, reset, sortClient) {
-  const term  = $('search-input')?.value.trim().toLowerCase() || '';
+  const term        = $('search-input')?.value.trim().toLowerCase() || '';
   const onlyScholar = $('filter-scholar')?.checked;
-  const list = $('student-list');
+  const list        = $('student-list');
   if (!list) return;
   if (reset) list.innerHTML = '';
 
   const arr = sortClient
-    ? [...docs].sort((a,b)=>a.data().name.localeCompare(b.data().name,'pt-BR'))
+    ? [...docs].sort((a, b) => a.data().name.localeCompare(b.data().name, 'pt-BR'))
     : docs;
 
   arr.forEach(d => {
@@ -206,7 +200,7 @@ function renderList(docs, reset, sortClient) {
       currentDetailId   = d.id;
       currentDetailData = s;
       showStudentDetail(d.id, s);
-      listPayments(d.id);      // studentId
+      listPayments(d.id);
     };
     list.appendChild(li);
   });
@@ -217,19 +211,23 @@ function renderList(docs, reset, sortClient) {
  * =================================================================*/
 async function saveStudent() {
   const payload = {
-    ownerUid       : currentUser.uid,
-    name           : $('student-name').value.trim(),
-    contact        : $('student-contact').value.trim(),
-    centerId       : $('student-center').value,
-    fee            : $('student-scholar').checked ? 0 : Number($('student-fee').value || 0),
-    class          : $('student-class').value.trim(),
-    guardian       : $('student-guardian').value.trim(),
-    notes          : $('student-notes').value.trim(),
-    isScholarship  : $('student-scholar').checked
+    ownerUid      : currentUser.uid,
+    name          : $('student-name').value.trim(),
+    contact       : $('student-contact').value.trim(),
+    centerId      : $('student-center').value,
+    fee           : $('student-scholar').checked ? 0 : Number($('student-fee').value || 0),
+    class         : $('student-class').value.trim(),
+    guardian      : $('student-guardian').value.trim(),
+    notes         : $('student-notes').value.trim(),
+    isScholarship : $('student-scholar').checked
   };
 
-  const photoFile = $('student-photo').files[0];
-  if (photoFile) payload.photoURL = await uploadImage(photoFile, currentUser.uid);
+  /* ----- FOTO (resize + upload) ----- */
+  const original = $('student-photo').files[0];
+  if (original) {
+    const reduced = await resizeImage(original, 600, 80 * 1024); // máx 80 KB
+    payload.photoURL = await uploadImage(reduced, currentUser.uid);
+  }
 
   const col = collection(db, 'students');
 
